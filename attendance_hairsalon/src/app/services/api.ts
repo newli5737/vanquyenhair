@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://witch-reported-cdt-crop.trycloudflare.com';
 
 // Helper function to get auth token
 const getAuthToken = () => {

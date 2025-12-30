@@ -226,8 +226,10 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
       }, 1500);
     } catch (error: any) {
       toast.error(error.message || "Điểm danh thất bại");
-      // If face valid failed, maybe go back to step 1?
-      // For now stay here user can retry or navigation back
+      // If failed, reset to step 1 to retake photo
+      setCapturedImage(null);
+      setFaceStatus("idle");
+      setStep(1);
     } finally {
       setCheckInLoading(false);
     }

@@ -14,6 +14,13 @@ export class TrainingClassController {
         return this.trainingClassService.findAll();
     }
 
+    @Get('available')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.STUDENT)
+    async getAvailableClasses() {
+        return this.trainingClassService.getAvailableClasses();
+    }
+
     @Post()
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)

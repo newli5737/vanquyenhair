@@ -3,14 +3,31 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Label } from "./ui/label";
 import Navigation from "./Navigation";
 import { toast } from "sonner";
-import { Camera, MapPin, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Camera, MapPin, CheckCircle2, XCircle, Loader2, GraduationCap } from "lucide-react";
 import { uploadToCloudinary } from "../services/cloudinary";
-import { attendanceApi } from "../services/api";
+import { attendanceApi, enrollmentApi } from "../services/api";
 
 interface CheckInPageProps {
   onLogout?: () => void;
+}
+
+interface TrainingClass {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  location: string;
+  year: string;
 }
 
 export default function CheckInPage({ onLogout }: CheckInPageProps) {
@@ -19,6 +36,9 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
   const [sessionId, setSessionId] = useState<string | null>(locationState.state?.sessionId || null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const [myClasses, setMyClasses] = useState<TrainingClass[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [loadingClasses, setLoadingClasses] = useState(false);
 
   const [step, setStep] = useState(sessionId ? 1 : 0);
   const [faceStatus, setFaceStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
@@ -32,10 +52,31 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
   const [checkInLoading, setCheckInLoading] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) {
+    fetchMyClasses();
+  }, []);
+
+  useEffect(() => {
+    if (selectedClassId && !sessionId) {
       fetchSessions();
     }
-  }, [sessionId]);
+  }, [selectedClassId, sessionId]);
+
+  const fetchMyClasses = async () => {
+    try {
+      setLoadingClasses(true);
+      const data = await enrollmentApi.getMyClasses();
+      setMyClasses(data);
+
+      // Auto-select first class if only one
+      if (data.length === 1) {
+        setSelectedClassId(data[0].id);
+      }
+    } catch (error) {
+      toast.error("Không thể tải danh sách lớp học");
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
 
   const fetchSessions = async () => {
     try {
@@ -205,6 +246,11 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
 
   const progressValue = (step / 3) * 100;
 
+  // Filter sessions by selected class
+  const filteredSessions = selectedClassId
+    ? sessions.filter(s => s.trainingClassId === selectedClassId)
+    : sessions;
+
   return (
     <div className="min-h-screen pb-20 md:pb-0">
       <Navigation onLogout={onLogout || (() => navigate("/login"))} />
@@ -226,37 +272,76 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
           <Card>
             <CardHeader>
               <CardTitle>Chọn ca học hôm nay</CardTitle>
-              <CardDescription>Vui lòng chọn ca học bạn muốn điểm danh</CardDescription>
+              <CardDescription>Vui lòng chọn lớp và ca học bạn muốn điểm danh</CardDescription>
             </CardHeader>
-            <CardContent>
-              {loadingSessions ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-                  <p className="mt-2 text-gray-500">Đang tải danh sách ca học...</p>
-                </div>
-              ) : sessions.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>Không có ca học nào diễn ra hôm nay.</p>
-                  <Button variant="link" onClick={() => navigate("/")}>Quay về trang chủ</Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => handleSelectSession(session.id)}
-                    >
-                      <div>
-                        <h3 className="font-semibold text-lg">{session.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {session.startTime} - {session.endTime}
-                        </p>
-                      </div>
-                      <Button size="sm" variant="outline">Chọn</Button>
+            <CardContent className="space-y-6">
+              {/* Class Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="class-select" className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  Chọn lớp học
+                </Label>
+                {loadingClasses ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                ) : myClasses.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    <p>Bạn chưa được duyệt vào lớp nào.</p>
+                    <Button variant="link" onClick={() => navigate("/classes")}>
+                      Đăng ký lớp học
+                    </Button>
+                  </div>
+                ) : (
+                  <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <SelectTrigger id="class-select">
+                      <SelectValue placeholder="Chọn lớp học..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {myClasses.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name} ({cls.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Sessions List */}
+              {selectedClassId && (
+                <>
+                  {loadingSessions ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+                      <p className="mt-2 text-gray-500">Đang tải danh sách ca học...</p>
                     </div>
-                  ))}
-                </div>
+                  ) : filteredSessions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Không có ca học nào diễn ra hôm nay cho lớp này.</p>
+                      <Button variant="link" onClick={() => navigate("/")}>Quay về trang chủ</Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Label>Chọn ca học</Label>
+                      {filteredSessions.map((session) => (
+                        <div
+                          key={session.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => handleSelectSession(session.id)}
+                        >
+                          <div>
+                            <h3 className="font-semibold text-lg">{session.name}</h3>
+                            <p className="text-sm text-gray-600">
+                              {session.startTime} - {session.endTime}
+                            </p>
+                          </div>
+                          <Button size="sm" variant="outline">Chọn</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

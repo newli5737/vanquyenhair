@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
-import { FaceServiceService } from '../face-service/face-service.service';
+
 import { AuthService } from '../auth/auth.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { Role } from '@prisma/client';
@@ -11,7 +11,6 @@ export class StudentService {
     constructor(
         private prisma: PrismaService,
         private cloudinary: CloudinaryService,
-        private faceService: FaceServiceService,
         private authService: AuthService,
     ) { }
 
@@ -68,20 +67,13 @@ export class StudentService {
 
             await this.prisma.studentProfile.update({
                 where: { id: user.studentProfile.id },
-                data: { avatarUrl },
+                data: {
+                    avatarUrl,
+                    faceRegistered: true
+                },
             });
 
-            // Register face
-            try {
-                await this.faceService.registerFace(user.studentProfile.studentCode, createStudentDto.avatarBase64);
-                await this.prisma.studentProfile.update({
-                    where: { id: user.studentProfile.id },
-                    data: { faceRegistered: true },
-                });
-            } catch (error) {
-                // Face registration failed, but student is still created
-                console.error('Face registration failed:', error);
-            }
+
         }
 
         if (!user.studentProfile) {
@@ -118,9 +110,7 @@ export class StudentService {
             updateData.identityCard = updateStudentDto.identityCard;
         }
 
-        if (updateStudentDto.trainingClassId) {
-            updateData.trainingClassId = updateStudentDto.trainingClassId;
-        }
+
 
         if (updateStudentDto.identityCardImage) {
             const cccdUrl = await this.cloudinary.uploadBase64Image(
@@ -130,20 +120,20 @@ export class StudentService {
             updateData.identityCardImage = cccdUrl;
         }
 
-        if (updateStudentDto.avatarBase64) {
+        // Handle avatar update - support both direct URL and base64
+        if (updateStudentDto.avatarUrl) {
+            // Direct URL provided (e.g., from Cloudinary upload in frontend)
+            updateData.avatarUrl = updateStudentDto.avatarUrl;
+        } else if (updateStudentDto.avatarBase64) {
+            // Base64 provided - upload to Cloudinary
             const avatarUrl = await this.cloudinary.uploadBase64Image(
                 updateStudentDto.avatarBase64,
                 'avatars',
             );
             updateData.avatarUrl = avatarUrl;
 
-            // Re-register face
-            try {
-                await this.faceService.registerFace(student.studentCode, updateStudentDto.avatarBase64);
-                updateData.faceRegistered = true;
-            } catch (error) {
-                console.error('Face registration failed:', error);
-            }
+            // Auto-register face when avatar is uploaded
+            updateData.faceRegistered = true;
         }
 
         await this.prisma.studentProfile.update({

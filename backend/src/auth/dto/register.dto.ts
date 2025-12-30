@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsDateString } from 'class-validator';
 
 export class RegisterDto {
     @IsString()
@@ -14,7 +14,7 @@ export class RegisterDto {
     @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
     password: string;
 
-    // Optional phone number during registration, can be updated later? 
-    // User requirement: "Create generic user, then register class".
-    // Let's keep it simple.
+    @IsOptional()
+    @IsDateString({}, { message: 'Ngày sinh không hợp lệ' })
+    dateOfBirth?: string;
 }

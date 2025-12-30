@@ -6,7 +6,48 @@ export class TrainingClassService {
     constructor(private prisma: PrismaService) { }
 
     async findAll() {
-        return this.prisma.trainingClass.findMany();
+        const classes = await this.prisma.trainingClass.findMany({
+            include: {
+                _count: {
+                    select: {
+                        enrollmentRequests: {
+                            where: { status: 'PENDING' }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        return classes.map(cls => ({
+            ...cls,
+            pendingCount: cls._count.enrollmentRequests
+        }));
+    }
+
+    async getAvailableClasses() {
+        const classes = await this.prisma.trainingClass.findMany({
+            include: {
+                _count: {
+                    select: {
+                        enrollmentRequests: {
+                            where: { status: 'APPROVED' }
+                        }
+                    }
+                }
+            },
+            orderBy: [
+                { year: 'desc' },
+                { name: 'asc' }
+            ]
+        });
+
+        return classes.map(cls => ({
+            ...cls,
+            studentCount: cls._count.enrollmentRequests
+        }));
     }
 
     async create(data: any) {

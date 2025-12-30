@@ -4,7 +4,7 @@ import { CreateSessionDto } from './dto/session.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '@prisma/client';
+import { Role, ClassEnrollmentStatus } from '@prisma/client';
 
 @Controller()
 export class SessionController {
@@ -21,8 +21,8 @@ export class SessionController {
     @Get('admin/sessions')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
-    async getSessionsByDate(@Query('date') date: string) {
-        return this.sessionService.getSessionsByDate(date);
+    async getSessionsByDate(@Query('date') date: string, @Query('classId') classId?: string) {
+        return this.sessionService.getSessionsByDate(date, classId);
     }
 
     @Put('admin/sessions/:id')
@@ -52,7 +52,17 @@ export class SessionController {
             throw new Error('Student profile not found');
         }
 
-        return this.sessionService.getTodaySessions(studentProfile.trainingClassId || undefined);
+        const enrollments = await this.sessionService['prisma'].classEnrollmentRequest.findMany({
+            where: {
+                studentId: studentProfile.id,
+                status: ClassEnrollmentStatus.APPROVED
+            },
+            select: { trainingClassId: true }
+        });
+
+        const classIds = enrollments.map(e => e.trainingClassId);
+
+        return this.sessionService.getTodaySessions(classIds.length > 0 ? classIds : undefined);
     }
 
     @Post('sessions/:id/register')

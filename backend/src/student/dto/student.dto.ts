@@ -42,6 +42,10 @@ export class UpdateStudentDto {
 
     @IsOptional()
     @IsString()
+    avatarUrl?: string;
+
+    @IsOptional()
+    @IsString()
     identityCard?: string;
 
     @IsOptional()
@@ -52,7 +56,5 @@ export class UpdateStudentDto {
     // @IsDateString() // Optional validation
     dateOfBirth?: string; // Receive as string, parse later or use Date if transformed
 
-    @IsOptional()
-    @IsString()
-    trainingClassId?: string;
+
 }

@@ -11,9 +11,11 @@ import StudentManagement from "./components/admin/StudentManagement";
 import SessionManagement from "./components/admin/SessionManagement";
 import AttendanceViewer from "./components/admin/AttendanceViewer";
 import ClassManagement from "./components/admin/ClassManagement";
+import ClassEnrollmentPage from "./components/admin/ClassEnrollmentPage";
 import AdminLayout from "./components/admin/AdminLayout";
 import RegisterPage from "./components/RegisterPage";
 import ClassRegistrationPage from "./components/ClassRegistrationPage";
+import AvailableClassesPage from "./components/AvailableClassesPage";
 import { Toaster } from "./components/ui/sonner";
 
 function App() {
@@ -86,6 +88,12 @@ function App() {
             }
           />
           <Route
+            path="/classes"
+            element={
+              isLoggedIn && !isAdmin ? <AvailableClassesPage onLogout={handleLogout} /> : <Navigate to="/login" />
+            }
+          />
+          <Route
             path="/profile"
             element={
               isLoggedIn && !isAdmin ? <ProfilePage onLogout={handleLogout} /> : <Navigate to="/login" />
@@ -109,6 +117,7 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="students" element={<StudentManagement />} />
             <Route path="classes" element={<ClassManagement />} />
+            <Route path="class-enrollment" element={<ClassEnrollmentPage />} />
             <Route path="sessions" element={<SessionManagement />} />
             <Route path="attendance" element={<AttendanceViewer />} />
             {/* Redirect /admin to /admin/dashboard */}

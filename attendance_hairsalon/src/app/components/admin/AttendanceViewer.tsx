@@ -20,8 +20,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, MapPin, ArrowLeft } from "lucide-react";
-import { attendanceApi, sessionApi } from "../../services/api";
+import { Calendar as CalendarIcon, MapPin, ArrowLeft, School } from "lucide-react";
+import { attendanceApi, sessionApi, trainingClassApi } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
 export default function AttendanceViewer() {
@@ -33,21 +33,47 @@ export default function AttendanceViewer() {
     const [sessions, setSessions] = useState<any[]>([]);
     const [attendances, setAttendances] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [selectedClassId, setSelectedClassId] = useState<string>("");
 
     useEffect(() => {
-        loadSessions();
-    }, [selectedDate]);
+        fetchClasses();
+    }, []);
+
+    useEffect(() => {
+        if (selectedDate && selectedClassId) {
+            loadSessions();
+        } else {
+            setSessions([]);
+            setSelectedSession("");
+        }
+    }, [selectedDate, selectedClassId]);
 
     useEffect(() => {
         loadAttendances();
     }, [selectedDate, selectedSession]);
 
-    const loadSessions = async () => {
+    const fetchClasses = async () => {
         try {
-            const data = await sessionApi.getByDate(selectedDate);
+            const data = await trainingClassApi.getAll();
+            setClasses(data);
+            if (data.length > 0 && !selectedClassId) {
+                setSelectedClassId(data[0].id);
+            }
+        } catch (error) {
+            console.error("Failed to fetch classes", error);
+        }
+    };
+
+    const loadSessions = async () => {
+        if (!selectedClassId) return;
+        try {
+            const data = await sessionApi.getByDate(selectedDate, selectedClassId);
             setSessions(data);
-            if (data.length > 0 && !selectedSession) {
+            if (data.length > 0) {
                 setSelectedSession(data[0].id);
+            } else {
+                setSelectedSession("");
             }
         } catch (error: any) {
             toast.error(error.message || "Không thể tải danh sách ca học");
@@ -57,7 +83,7 @@ export default function AttendanceViewer() {
     const loadAttendances = async () => {
         try {
             setLoading(true);
-            const data = await attendanceApi.getRecords(selectedDate, selectedSession);
+            const data = await attendanceApi.getRecords(selectedDate, selectedSession, selectedClassId);
             setAttendances(data);
         } catch (error: any) {
             toast.error(error.message || "Không thể tải dữ liệu điểm danh");
@@ -92,7 +118,7 @@ export default function AttendanceViewer() {
                 {/* Filters */}
                 <Card className="mb-6">
                     <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="date" className="flex items-center gap-2">
                                     <CalendarIcon className="w-4 h-4" />
@@ -104,6 +130,25 @@ export default function AttendanceViewer() {
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="class" className="flex items-center gap-2">
+                                    <School className="w-4 h-4" />
+                                    Chọn lớp học:
+                                </Label>
+                                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Chọn lớp học" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {classes.map((cls) => (
+                                            <SelectItem key={cls.id} value={cls.id}>
+                                                {cls.name} ({cls.code})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-2">

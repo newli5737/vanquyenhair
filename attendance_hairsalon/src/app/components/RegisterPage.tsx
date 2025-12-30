@@ -13,6 +13,7 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
         email: '',
         password: '',
         confirmPassword: '',
+        dateOfBirth: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -39,6 +40,7 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
                 fullName: formData.fullName,
                 email: formData.email,
                 password: formData.password,
+                dateOfBirth: formData.dateOfBirth || undefined,
             });
 
             // Login successful after register (backend returns token)
@@ -123,6 +125,17 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
                                 placeholder="email@example.com"
                                 required
                                 value={formData.email}
+                                onChange={handleChange}
+                                className="h-11"
+                                disabled={isLoading}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="dateOfBirth">Ngày sinh (tùy chọn)</Label>
+                            <Input
+                                id="dateOfBirth"
+                                type="date"
+                                value={formData.dateOfBirth}
                                 onChange={handleChange}
                                 className="h-11"
                                 disabled={isLoading}

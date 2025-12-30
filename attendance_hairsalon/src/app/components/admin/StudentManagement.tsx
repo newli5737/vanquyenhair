@@ -111,12 +111,18 @@ export default function StudentManagement() {
             };
 
             if (editingStudent) {
-                // Update
-                await studentApi.update(editingStudent.id, {
+                // Update - only send fields that have values
+                const updateData: any = {
                     fullName: submitData.fullName,
                     phone: submitData.phone,
-                    avatarUrl: submitData.avatarUrl,
-                });
+                };
+
+                // Only include avatarUrl if it has a value
+                if (submitData.avatarUrl && submitData.avatarUrl.trim() !== '') {
+                    updateData.avatarUrl = submitData.avatarUrl;
+                }
+
+                await studentApi.update(editingStudent.id, updateData);
                 toast.success("Cập nhật học viên thành công!");
             } else {
                 // Create

@@ -21,8 +21,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { Plus, Clock, Edit2, Trash2, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
-import { sessionApi } from "../../services/api";
+import { Plus, Clock, Edit2, Trash2, Calendar as CalendarIcon, AlertCircle, School } from "lucide-react";
+import { sessionApi, trainingClassApi } from "../../services/api";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { format } from "date-fns";
@@ -39,6 +39,10 @@ export default function SessionManagement() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [sessionToDelete, setSessionToDelete] = useState<any>(null);
 
+    // Class selection
+    const [classes, setClasses] = useState<any[]>([]);
+    const [selectedClassId, setSelectedClassId] = useState<string>("");
+
     // Form state
     const [formData, setFormData] = useState({
         name: "",
@@ -50,15 +54,34 @@ export default function SessionManagement() {
     const formattedDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
 
     useEffect(() => {
-        if (formattedDate) {
+        fetchClasses();
+    }, []);
+
+    useEffect(() => {
+        if (formattedDate && selectedClassId) {
             loadSessions();
+        } else {
+            setSessions([]);
         }
-    }, [formattedDate]);
+    }, [formattedDate, selectedClassId]);
+
+    const fetchClasses = async () => {
+        try {
+            const data = await trainingClassApi.getAll();
+            setClasses(data);
+            if (data.length > 0 && !selectedClassId) {
+                setSelectedClassId(data[0].id);
+            }
+        } catch (error) {
+            console.error("Failed to fetch classes", error);
+        }
+    };
 
     const loadSessions = async () => {
+        if (!selectedClassId) return;
         try {
             setLoading(true);
-            const data = await sessionApi.getByDate(formattedDate);
+            const data = await sessionApi.getByDate(formattedDate, selectedClassId);
             setSessions(data);
         } catch (error: any) {
             toast.error(error.message || "Không thể tải danh sách ca học");
@@ -111,6 +134,7 @@ export default function SessionManagement() {
         try {
             const data = {
                 date: formattedDate,
+                trainingClassId: selectedClassId,
                 ...formData,
             };
 
@@ -137,7 +161,31 @@ export default function SessionManagement() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1">
+                <div className="md:col-span-1 space-y-6">
+                    {/* Class Selector */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <School className="w-5 h-5 text-indigo-600" />
+                                Chọn lớp học
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn lớp học..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classes.map((cls) => (
+                                        <SelectItem key={cls.id} value={cls.id}>
+                                            {cls.name} ({cls.code})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </CardContent>
+                    </Card>
+
                     {/* Calendar Selector */}
                     <Card className="h-fit">
                         <CardHeader>

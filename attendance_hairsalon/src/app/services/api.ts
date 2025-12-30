@@ -1,5 +1,5 @@
-// const API_BASE_URL = 'https://nose-clouds-stanford-eval.trycloudflare.com';
-const API_BASE_URL = 'http://localhost:8002';
+const API_BASE_URL = 'https://quantities-accepted-cruz-vacuum.trycloudflare.com';
+// const API_BASE_URL = 'http://localhost:8002';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -40,7 +40,7 @@ export const authApi = {
         });
     },
 
-    register: async (data: { fullName: string; email: string; password: string }) => {
+    register: async (data: { fullName: string; email: string; password: string; dateOfBirth?: string }) => {
         return apiCall('/auth/register', {
             method: 'POST',
             body: JSON.stringify(data),
@@ -76,6 +76,10 @@ export const trainingClassApi = {
         return apiCall(`/training-classes/${id}`, {
             method: 'DELETE',
         });
+    },
+
+    getAvailableClasses: async () => {
+        return apiCall('/training-classes/available');
     },
 };
 
@@ -118,8 +122,8 @@ export const studentApi = {
 
 // Session API
 export const sessionApi = {
-    getByDate: async (date: string) => {
-        return apiCall(`/admin/sessions?date=${date}`);
+    getByDate: async (date: string, classId?: string) => {
+        return apiCall(`/admin/sessions?date=${date}${classId ? `&classId=${classId}` : ''}`);
     },
 
     create: async (data: any) => {
@@ -155,10 +159,11 @@ export const sessionApi = {
 
 // Attendance API
 export const attendanceApi = {
-    getRecords: async (date?: string, sessionId?: string) => {
+    getRecords: async (date?: string, sessionId?: string, classId?: string) => {
         const params = new URLSearchParams();
         if (date) params.append('date', date);
         if (sessionId) params.append('sessionId', sessionId);
+        if (classId) params.append('classId', classId);
 
         return apiCall(`/admin/attendance?${params.toString()}`);
     },
@@ -182,3 +187,62 @@ export const attendanceApi = {
         return apiCall('/student/attendance');
     },
 };
+
+// Enrollment API
+export const enrollmentApi = {
+    // Student endpoints
+    createRequest: async (classId: string) => {
+        return apiCall('/enrollment/request', {
+            method: 'POST',
+            body: JSON.stringify({ trainingClassId: classId }),
+        });
+    },
+
+    getMyRequests: async () => {
+        return apiCall('/enrollment/my-requests');
+    },
+
+    getMyClasses: async () => {
+        return apiCall('/enrollment/my-classes');
+    },
+
+    // Admin endpoints
+    getAllRequests: async (classId?: string, status?: string) => {
+        const params = new URLSearchParams();
+        if (classId) params.append('classId', classId);
+        if (status) params.append('status', status);
+
+        const query = params.toString();
+        return apiCall(`/admin/enrollment/requests${query ? `?${query}` : ''}`);
+    },
+
+    getPendingRequests: async (classId?: string) => {
+        const params = new URLSearchParams();
+        if (classId) params.append('classId', classId);
+
+        const query = params.toString();
+        return apiCall(`/admin/enrollment/pending${query ? `?${query}` : ''}`);
+    },
+
+    reviewRequest: async (requestId: string, data: { status: 'APPROVED' | 'REJECTED'; rejectionReason?: string }) => {
+        return apiCall(`/admin/enrollment/requests/${requestId}/review`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    getClassStats: async (classId: string) => {
+        return apiCall(`/admin/enrollment/stats/${classId}`);
+    },
+};
+
+// Face Verification API
+export const faceVerificationApi = {
+    verify: async (selfieUrl: string) => {
+        return apiCall('/face-verification/verify', {
+            method: 'POST',
+            body: JSON.stringify({ selfieUrl }),
+        });
+    },
+};
+

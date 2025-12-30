@@ -1,14 +1,16 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { FaceServiceService } from '../face-service/face-service.service';
+import { FaceVerificationService } from '../face-service/face-service.service';
 import { CheckInDto, CheckOutDto } from './dto/attendance.dto';
 import { AttendanceStatus } from '@prisma/client';
 
 @Injectable()
 export class AttendanceService {
+    private readonly logger = new Logger(AttendanceService.name);
+
     constructor(
         private prisma: PrismaService,
-        private faceService: FaceServiceService,
+        private faceService: FaceVerificationService,
     ) { }
 
     async checkIn(studentId: string, checkInDto: CheckInDto) {
@@ -33,13 +35,13 @@ export class AttendanceService {
         }
 
         // Verify face
-        const faceResult = await this.faceService.verifyFace(
+        const faceResult = await this.faceService.verifyAttendance(
             student.studentCode,
             checkInDto.imageBase64,
         );
 
         if (!faceResult.matched || faceResult.score < 0.7) {
-            throw new BadRequestException('Khuôn mặt không khớp. Vui lòng thử lại.');
+            throw new BadRequestException(`Khuôn mặt không khớp (Độ chính xác: ${(faceResult.score * 100).toFixed(1)}%). Vui lòng thử lại.`);
         }
 
         // Check if attendance record exists
@@ -95,13 +97,13 @@ export class AttendanceService {
         }
 
         // Verify face
-        const faceResult = await this.faceService.verifyFace(
+        const faceResult = await this.faceService.verifyAttendance(
             student.studentCode,
             checkOutDto.imageBase64,
         );
 
         if (!faceResult.matched || faceResult.score < 0.7) {
-            throw new BadRequestException('Khuôn mặt không khớp. Vui lòng thử lại.');
+            throw new BadRequestException(`Khuôn mặt không khớp (Độ chính xác: ${(faceResult.score * 100).toFixed(1)}%). Vui lòng thử lại.`);
         }
 
         const attendance = await this.prisma.attendance.findUnique({

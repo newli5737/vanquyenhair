@@ -10,6 +10,7 @@ import { StudentModule } from './student/student.module';
 import { SessionModule } from './session/session.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { TrainingClassModule } from './training-class/training-class.module';
+import { EnrollmentModule } from './enrollment/enrollment.module';
 
 @Module({
   imports: [
@@ -22,10 +23,9 @@ import { TrainingClassModule } from './training-class/training-class.module';
     FaceServiceModule,
     StudentModule,
     SessionModule,
-    StudentModule,
-    SessionModule,
     AttendanceModule,
     TrainingClassModule,
+    EnrollmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

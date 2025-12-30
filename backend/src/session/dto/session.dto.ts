@@ -19,4 +19,8 @@ export class CreateSessionDto {
     @IsNotEmpty({ message: 'Giờ kết thúc không được để trống' })
     @Matches(/^\d{2}:\d{2}$/, { message: 'Giờ kết thúc phải có định dạng HH:mm' })
     endTime: string;
+
+    @IsString()
+    @IsNotEmpty({ message: 'Lớp học không được để trống' })
+    trainingClassId: string;
 }

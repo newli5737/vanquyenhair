@@ -64,6 +64,7 @@ export class AuthService {
                 fullName: registerDto.fullName,
                 studentCode: 'S' + Date.now(), // Temporary code generation
                 phone: '', // Default empty, update later
+                dateOfBirth: registerDto.dateOfBirth ? new Date(registerDto.dateOfBirth) : null,
             }
         });
 

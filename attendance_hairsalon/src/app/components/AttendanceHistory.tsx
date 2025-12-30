@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Label } from "./ui/label";
 import Navigation from "./Navigation";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, MapPin, LogIn, LogOut } from "lucide-react";
-import { attendanceApi } from "../services/api";
+import { Calendar as CalendarIcon, Clock, MapPin, LogIn, LogOut, GraduationCap } from "lucide-react";
+import { attendanceApi, enrollmentApi } from "../services/api";
 import { toast } from "sonner";
 import { Skeleton } from "./ui/skeleton";
 import { DayPicker } from "react-day-picker";
@@ -30,6 +38,16 @@ interface AttendanceRecord {
   checkOutLat?: number;
   checkOutLng?: number;
   sessionName?: string;
+  trainingClassId?: string;
+}
+
+interface TrainingClass {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  location: string;
+  year: string;
 }
 
 export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) {
@@ -37,6 +55,9 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [myClasses, setMyClasses] = useState<TrainingClass[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("all");
+  const [loadingClasses, setLoadingClasses] = useState(false);
 
   // Create a map for styling dates in calendar
   const [modifiers, setModifiers] = useState<any>({
@@ -46,8 +67,21 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
   });
 
   useEffect(() => {
+    fetchMyClasses();
     fetchHistory();
   }, []);
+
+  const fetchMyClasses = async () => {
+    try {
+      setLoadingClasses(true);
+      const data = await enrollmentApi.getMyClasses();
+      setMyClasses(data);
+    } catch (error) {
+      toast.error("Không thể tải danh sách lớp học");
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -99,7 +133,8 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
           checkInLng: item.checkInLng,
           checkOutLat: item.checkOutLat,
           checkOutLng: item.checkOutLng,
-          sessionName: item.session.name
+          sessionName: item.session.name,
+          trainingClassId: item.session.trainingClassId
         };
       });
 
@@ -131,9 +166,13 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
     }
   };
 
-  // Filter records for selected date
+  // Filter records by selected date and class
+  const filteredHistory = selectedClassId === "all"
+    ? history
+    : history.filter(h => h.trainingClassId === selectedClassId);
+
   const selectedRecords = selectedDate
-    ? history.filter(h => isSameDay(parseISO(h.rawDate), selectedDate))
+    ? filteredHistory.filter(h => isSameDay(parseISO(h.rawDate), selectedDate))
     : [];
 
   const css = `
@@ -180,6 +219,37 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Lịch sử điểm danh</h2>
           <p className="text-gray-500">Xem lại chi tiết thời gian và địa điểm điểm danh của bạn</p>
+        </div>
+
+        {/* Class Filter */}
+        <div className="mb-6">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="pt-6">
+              <div className="space-y-2">
+                <Label htmlFor="class-filter" className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  Lọc theo lớp học
+                </Label>
+                {loadingClasses ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <SelectTrigger id="class-filter">
+                      <SelectValue placeholder="Chọn lớp học..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả lớp học</SelectItem>
+                      {myClasses.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name} ({cls.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">

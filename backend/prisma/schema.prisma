@@ -21,6 +21,12 @@ enum AttendanceStatus {
   ABSENT
 }
 
+enum ClassEnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String          @id @default(uuid())
   role         Role
@@ -29,6 +35,7 @@ model User {
   createdAt    DateTime        @default(now())
   
   studentProfile StudentProfile?
+  reviewedEnrollments ClassEnrollmentRequest[]
   
   @@map("users")
 }
@@ -44,12 +51,11 @@ model StudentProfile {
   identityCard   String?
   identityCardImage String?
   dateOfBirth    DateTime?
-  trainingClassId String?
 
   user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trainingClass       TrainingClass?         @relation(fields: [trainingClassId], references: [id])
   sessionRegistrations SessionRegistration[]
   attendances         Attendance[]
+  enrollmentRequests  ClassEnrollmentRequest[]
   
   @@map("student_profiles")
 }
@@ -74,8 +80,8 @@ model TrainingClass {
   year      String        @default("2025") // e.g., "2025" or "2024-2025"
   createdAt DateTime      @default(now())
 
-  students  StudentProfile[]
   sessions  ClassSession[]
+  enrollmentRequests ClassEnrollmentRequest[]
 
   @@map("training_classes")
 }
@@ -132,4 +138,22 @@ model Attendance {
   
   @@unique([studentId, sessionId])
   @@map("attendances")
+}
+
+model ClassEnrollmentRequest {
+  id              String                  @id @default(uuid())
+  studentId       String
+  trainingClassId String
+  status          ClassEnrollmentStatus   @default(PENDING)
+  requestedAt     DateTime                @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+  
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  trainingClass TrainingClass  @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
+  reviewer      User?          @relation(fields: [reviewedBy], references: [id])
+  
+  @@unique([studentId, trainingClassId])
+  @@map("class_enrollment_requests")
 }

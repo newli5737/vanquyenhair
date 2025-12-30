@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
-import { FaceServiceService } from './face-service.service';
+import { FaceVerificationService } from './face-service.service';
+import { FaceVerificationController } from './face-service.controller';
 
 @Module({
-    imports: [HttpModule],
-    providers: [FaceServiceService],
-    exports: [FaceServiceService],
+    controllers: [FaceVerificationController],
+    providers: [FaceVerificationService],
+    exports: [FaceVerificationService],
 })
 export class FaceServiceModule { }

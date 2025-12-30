@@ -7,13 +7,17 @@ export class SessionService {
     constructor(private prisma: PrismaService) { }
 
     async createSession(createSessionDto: CreateSessionDto) {
-        // Check if there are already 3 sessions on this date
+        // Check if there are already 3 sessions on this date for this class
         const existingSessions = await this.prisma.classSession.findMany({
-            where: { date: createSessionDto.date, isDeleted: false },
+            where: {
+                date: createSessionDto.date,
+                trainingClassId: createSessionDto.trainingClassId,
+                isDeleted: false
+            },
         });
 
         if (existingSessions.length >= 3) {
-            throw new BadRequestException('Mỗi ngày chỉ được tạo tối đa 3 ca học');
+            throw new BadRequestException('Mỗi ngày chỉ được tạo tối đa 3 ca học cho lớp này');
         }
 
         // Calculate registration deadline (startTime - 2 hours)
@@ -28,18 +32,26 @@ export class SessionService {
                 startTime: createSessionDto.startTime,
                 endTime: createSessionDto.endTime,
                 registrationDeadline,
+                trainingClassId: createSessionDto.trainingClassId,
             },
         });
     }
 
-    async getSessionsByDate(date: string, trainingClassId?: string) {
+    async getSessionsByDate(date: string, trainingClassId?: string | string[]) {
         const where: any = { date, isDeleted: false };
         if (trainingClassId) {
-            where.trainingClassId = trainingClassId;
+            if (Array.isArray(trainingClassId)) {
+                where.trainingClassId = { in: trainingClassId };
+            } else {
+                where.trainingClassId = trainingClassId;
+            }
         }
         return this.prisma.classSession.findMany({
             where,
             orderBy: { startTime: 'asc' },
+            include: {
+                trainingClass: true,
+            }
         });
     }
 
@@ -64,6 +76,7 @@ export class SessionService {
                 startTime: updateSessionDto.startTime,
                 endTime: updateSessionDto.endTime,
                 registrationDeadline,
+                trainingClassId: updateSessionDto.trainingClassId,
             },
         });
     }
@@ -83,7 +96,7 @@ export class SessionService {
         });
     }
 
-    async getTodaySessions(trainingClassId?: string) {
+    async getTodaySessions(trainingClassId?: string | string[]) {
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         return this.getSessionsByDate(today, trainingClassId);
     }

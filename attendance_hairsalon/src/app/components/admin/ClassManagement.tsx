@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, BookOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Edit, Trash2, BookOpen, Users } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
@@ -36,9 +37,11 @@ interface TrainingClass {
     location: string;
     year: string;
     createdAt: string;
+    pendingCount?: number;
 }
 
 export default function ClassManagement() {
+    const navigate = useNavigate();
     const [classes, setClasses] = useState<TrainingClass[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -208,6 +211,16 @@ export default function ClassManagement() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => {
+                                                        navigate(`/admin/class-enrollment?classId=${cls.id}&className=${encodeURIComponent(cls.name)}`);
+                                                    }} title="Xem yêu cầu đăng ký" className="relative">
+                                                        <Users className="w-4 h-4 text-green-600" />
+                                                        {cls.pendingCount ? (
+                                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                                                                {cls.pendingCount}
+                                                            </span>
+                                                        ) : null}
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => handleEditClick(cls)}>
                                                         <Edit className="w-4 h-4 text-blue-600" />
                                                     </Button>
@@ -225,8 +238,11 @@ export default function ClassManagement() {
                 </CardContent>
             </Card>
 
+
+
+
             {/* Add Modal */}
-            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            < Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen} >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Thêm lớp học mới</DialogTitle>
@@ -295,10 +311,10 @@ export default function ClassManagement() {
                         </DialogFooter>
                     </form>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             {/* Edit Modal */}
-            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            < Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen} >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Chỉnh sửa lớp học</DialogTitle>
@@ -365,7 +381,7 @@ export default function ClassManagement() {
                         </DialogFooter>
                     </form>
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+        </div >
     );
 }

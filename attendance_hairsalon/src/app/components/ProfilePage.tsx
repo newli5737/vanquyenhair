@@ -7,12 +7,17 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import Navigation from "./Navigation";
 import { toast } from "sonner";
-import { User, Mail, Phone, IdCard, CheckCircle2, XCircle, Save, Camera, Upload } from "lucide-react";
-import { studentApi } from "../services/api";
+import { User, Mail, Phone, IdCard, CheckCircle2, XCircle, Save, Camera, Upload, Loader2, ScanFace } from "lucide-react";
+import { studentApi, faceVerificationApi } from "../services/api";
 import { uploadToCloudinary } from "../services/cloudinary";
 import { Skeleton } from "./ui/skeleton";
-
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 interface ProfilePageProps {
   onLogout?: () => void;
@@ -26,9 +31,31 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Verification States
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+  };
+
+  // Cleanup camera when modal closes
+  useEffect(() => {
+    if (!showVerifyModal && cameraStream) {
+      stopCamera();
+    }
+  }, [showVerifyModal]);
 
   const fetchProfile = async () => {
     try {
@@ -45,7 +72,6 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       await studentApi.updateProfile({
         fullName: profile.fullName,
@@ -79,6 +105,79 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
     }
   };
 
+  // --- Face Verification Logic ---
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" }
+      });
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error: any) {
+      console.error("Camera error:", error);
+      toast.error("Không thể truy cập camera");
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d");
+
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+        setCapturedImage(imageData);
+        stopCamera();
+      }
+    }
+  };
+
+  const dataURLtoFile = (dataurl: string, filename: string) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const handleVerify = async () => {
+    if (!capturedImage) return;
+
+    setVerifying(true);
+    try {
+      // 1. Upload selfie to Cloudinary
+      const file = dataURLtoFile(capturedImage, "verification-selfie.jpg");
+      const selfieUrl = await uploadToCloudinary(file);
+
+      // 2. Call verification API
+      const result = await faceVerificationApi.verify(selfieUrl);
+
+      if (result.verified) {
+        toast.success(result.message);
+        setProfile((prev: any) => ({ ...prev, faceRegistered: true }));
+        setShowVerifyModal(false);
+      } else {
+        toast.error(result.message || "Xác thực thất bại, vui lòng thử lại");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Có lỗi xảy ra khi xác thực");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen pb-20 md:pb-0">
@@ -93,7 +192,7 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
-      <Navigation onLogout={() => navigate("/login")} />
+      <Navigation onLogout={onLogout || (() => navigate("/login"))} />
 
       <div className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Header */}
@@ -123,7 +222,7 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
                 >
-                  {uploadingAvatar ? <span className="animate-spin">⏳</span> : <Camera className="w-4 h-4" />}
+                  {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                 </Button>
                 <input
                   type="file"
@@ -239,7 +338,6 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
                     <p className="font-medium">{profile.fullName}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start gap-3">
                   <IdCard className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
@@ -247,7 +345,6 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
                     <p className="font-medium">{profile.studentCode}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start gap-3">
                   <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
@@ -255,7 +352,6 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
                     <p className="font-medium">{profile.email}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
@@ -311,18 +407,100 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
             </div>
 
             {!profile.faceRegistered && (
-              <Button className="w-full mt-4" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="w-4 h-4 mr-2" />
-                Tải lên ảnh khuôn mặt
+              <Button
+                className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => {
+                  setShowVerifyModal(true);
+                  startCamera();
+                }}
+              >
+                <ScanFace className="w-4 h-4 mr-2" />
+                Xác thực khuôn mặt ngay
               </Button>
             )}
 
             <p className="text-xs text-gray-500 mt-4 text-center">
-              Dữ liệu khuôn mặt và vị trí chỉ được sử dụng cho mục đích điểm danh
+              Hệ thống sẽ so sánh ảnh chụp selfie hiện tại của bạn với ảnh đại diện hồ sơ
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Verification Modal */}
+      <Dialog open={showVerifyModal} onOpenChange={(open) => {
+        if (!open) stopCamera();
+        setShowVerifyModal(open);
+        setCapturedImage(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác thực khuôn mặt</DialogTitle>
+            <DialogDescription>
+              Vui lòng giữ khuôn mặt ở giữa khung hình để xác thực
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              {capturedImage ? (
+                <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover transform scale-x-[-1]"
+                  />
+                  {!cameraStream && (
+                    <div className="absolute inset-0 flex items-center justify-center text-white">
+                      <p>Đang khởi động camera...</p>
+                    </div>
+                  )}
+                </>
+              )}
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="flex gap-2">
+              {!capturedImage ? (
+                <Button onClick={capturePhoto} className="w-full" disabled={!cameraStream}>
+                  <Camera className="w-4 h-4 mr-2" />
+                  Chụp ảnh
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCapturedImage(null)}
+                    className="flex-1"
+                    disabled={verifying}
+                  >
+                    Chụp lại
+                  </Button>
+                  <Button
+                    onClick={handleVerify}
+                    className="flex-1"
+                    disabled={verifying}
+                  >
+                    {verifying ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Đang xác thực...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Xác nhận
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

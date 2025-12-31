@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://quantities-accepted-cruz-vacuum.trycloudflare.com';
+const API_BASE_URL = 'https://represent-dylan-themselves-inch.trycloudflare.com';
 // const API_BASE_URL = 'http://localhost:8002';
 
 // Helper function to get auth token

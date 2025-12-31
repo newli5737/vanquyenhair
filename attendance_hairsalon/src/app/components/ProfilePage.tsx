@@ -7,8 +7,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import Navigation from "./Navigation";
 import { toast } from "sonner";
-import { User, Mail, Phone, IdCard, CheckCircle2, XCircle, Save, Camera, Upload, Loader2, ScanFace } from "lucide-react";
-import { studentApi, faceVerificationApi } from "../services/api";
+import { User, Mail, Phone, IdCard, CheckCircle2, XCircle, Save, Camera, Upload, Loader2, ScanFace, Lock, ShieldCheck } from "lucide-react";
+import { studentApi, faceVerificationApi, authApi } from "../services/api";
 import { uploadToCloudinary } from "../services/cloudinary";
 import { Skeleton } from "./ui/skeleton";
 import {
@@ -41,6 +41,15 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+  // Change Password States
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -79,7 +88,6 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
       await studentApi.updateProfile({
         fullName: profile.fullName,
         phone: profile.phone,
-        email: profile.email,
         dateOfBirth: profile.dateOfBirth,
         identityCard: profile.identityCard,
       });
@@ -186,6 +194,29 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
       toast.error(error.message || "Có lỗi xảy ra");
     } finally {
       setProcessingPhoto(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Mật khẩu mới không khớp");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      await authApi.changePassword({
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword
+      });
+      toast.success("Đổi mật khẩu thành công!");
+      setShowPasswordModal(false);
+      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      toast.error(error.message || "Đổi mật khẩu thất bại");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -297,8 +328,9 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
                   <Input
                     id="email"
                     type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    value={profile.user?.email || ''}
+                    disabled
+                    className="bg-gray-100 cursor-not-allowed"
                   />
                 </div>
 
@@ -367,7 +399,7 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
                   <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{profile.email}</p>
+                    <p className="font-medium">{profile.user?.email}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -383,7 +415,7 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
         </Card>
 
         {/* Face Data Section */}
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Dữ liệu khuôn mặt</CardTitle>
             <CardDescription>
@@ -437,6 +469,33 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
             <p className="text-xs text-gray-500 mt-4 text-center">
               Hệ thống sẽ so sánh ảnh chụp selfie hiện tại của bạn với ảnh đại diện hồ sơ
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Security Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-indigo-600" />
+              Bảo mật
+            </CardTitle>
+            <CardDescription>Quản lý mật khẩu và an toàn tài khoản</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Mật khẩu đăng nhập</p>
+                  <p className="text-sm text-gray-500">Thay đổi mật khẩu định kỳ để bảo vệ tài khoản</p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => setShowPasswordModal(true)}>
+                Đổi mật khẩu
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -549,6 +608,71 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
               )}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Modal */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi mật khẩu</DialogTitle>
+            <DialogDescription>
+              Nhập mật khẩu hiện tại và mật khẩu mới của bạn
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleChangePassword} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="oldPassword">Mật khẩu hiện tại</Label>
+              <Input
+                id="oldPassword"
+                type="password"
+                required
+                value={passwordData.oldPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Mật khẩu mới</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                required
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                required
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" className="flex-1" disabled={changingPassword}>
+                {changingPassword ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  "Cập nhật mật khẩu"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPasswordModal(false)}
+                className="flex-1"
+                disabled={changingPassword}
+              >
+                Hủy
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

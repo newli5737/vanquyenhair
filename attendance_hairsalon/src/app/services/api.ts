@@ -46,6 +46,20 @@ export const authApi = {
             body: JSON.stringify(data),
         });
     },
+
+    changePassword: async (data: any) => {
+        return apiCall('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    forgotPassword: async (email: string) => {
+        return apiCall('/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        });
+    },
 };
 
 // Training Class API
@@ -146,8 +160,8 @@ export const sessionApi = {
         });
     },
 
-    getTodaySessions: async () => {
-        return apiCall('/sessions/today');
+    getTodaySessions: async (registeredOnly = false) => {
+        return apiCall(`/sessions/today${registeredOnly ? '?registeredOnly=true' : ''}`);
     },
 
     register: async (sessionId: string) => {

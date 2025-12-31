@@ -117,7 +117,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
           <Card className="hover:shadow-md transition-shadow border-t-4 border-t-purple-500">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500 uppercase tracking-wider">Trạng thái Demo</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500 uppercase tracking-wider">Trạng thái xác thực</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-2">
               <Badge variant={profile?.faceRegistered ? "default" : "destructive"} className="px-3 py-1 text-sm">
@@ -156,10 +156,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           ) : (
             <div className="space-y-4">
               {todaySessions.map((session) => {
-                const isRegistered = registeredSessionId === session.id;
+                const isRegistered = session.isRegistered || registeredSessionId === session.id;
 
                 return (
-                  <Card key={session.id} className={`transition-all duration-300 ${isRegistered ? "border-green-500 ring-1 ring-green-500 shadow-md" : "hover:shadow-md border-l-4 border-l-indigo-500"}`}>
+                  <Card key={session.id} className={`transition-all duration-300 ${isRegistered ? "border-green-500 ring-1 ring-green-500 shadow-md bg-green-50/30" : "hover:shadow-md border-l-4 border-l-indigo-500"}`}>
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-2">
@@ -169,6 +169,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 pl-1 pr-2">
                                 <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                                 Đã điểm danh
+                              </Badge>
+                            )}
+                            {isRegistered && (
+                              <Badge variant="outline" className="text-green-600 border-green-200 bg-white">
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                Đã đăng ký ca học
                               </Badge>
                             )}
                           </div>
@@ -191,24 +197,23 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                               <CheckCircle2 className="w-5 h-5" />
                               <span>Hoàn thành</span>
                             </div>
+                          ) : isRegistered ? (
+                            <Button
+                              className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
+                              onClick={() => navigate("/check-in", { state: { sessionId: session.id } })}
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              Điểm danh
+                            </Button>
                           ) : (
-                            <>
-                              <Button
-                                variant="outline"
-                                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
-                                onClick={() => handleRegister(session.id)}
-                                disabled={!!registering || isAttended}
-                              >
-                                {registering === session.id ? "Đang xử lý..." : "Đăng ký"}
-                              </Button>
-                              <Button
-                                className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
-                                onClick={() => navigate("/check-in", { state: { sessionId: session.id } })}
-                              >
-                                <Camera className="w-4 h-4 mr-2" />
-                                Điểm danh
-                              </Button>
-                            </>
+                            <Button
+                              variant="outline"
+                              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
+                              onClick={() => handleRegister(session.id)}
+                              disabled={!!registering || isAttended}
+                            >
+                              {registering === session.id ? "Đang xử lý..." : "Đăng ký"}
+                            </Button>
                           )}
                         </div>
                       </div>

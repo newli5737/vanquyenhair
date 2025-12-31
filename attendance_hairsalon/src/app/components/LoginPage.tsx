@@ -4,8 +4,15 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { toast } from "sonner";
-import { GraduationCap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { GraduationCap, ArrowRight, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { authApi } from "../services/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 interface LoginPageProps {
   onLogin: (user: any) => void;
@@ -16,6 +23,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,6 +69,26 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       toast.error(error.message || "Đăng nhập thất bại");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      toast.error("Vui lòng nhập email");
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+      await authApi.forgotPassword(forgotEmail);
+      toast.success("Mật khẩu mới đã được gửi vào email của bạn!");
+      setShowForgotModal(false);
+      setForgotEmail("");
+    } catch (error: any) {
+      toast.error(error.message || "Không thể gửi yêu cầu");
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -130,9 +160,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mật khẩu</Label>
-                <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                >
                   Quên mật khẩu?
-                </a>
+                </button>
               </div>
               <Input
                 id="password"
@@ -174,6 +208,56 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           </form>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={showForgotModal} onOpenChange={setShowForgotModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Quên mật khẩu</DialogTitle>
+            <DialogDescription>
+              Nhập email của bạn để nhận lại mật khẩu mới
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgotEmail">Email khôi phục</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="forgotEmail"
+                  type="email"
+                  placeholder="name@example.com"
+                  className="pl-10"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" className="flex-1" disabled={sendingEmail}>
+                {sendingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang gửi...
+                  </>
+                ) : (
+                  "Gửi mật khẩu mới"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForgotModal(false)}
+                className="flex-1"
+                disabled={sendingEmail}
+              >
+                Hủy
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

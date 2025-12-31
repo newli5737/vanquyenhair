@@ -115,7 +115,7 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
   const fetchSessions = async () => {
     try {
       setLoadingSessions(true);
-      const data = await import("../services/api").then(m => m.sessionApi.getTodaySessions());
+      const data = await import("../services/api").then(m => m.sessionApi.getTodaySessions(true));
       setSessions(data);
     } catch (error) {
       toast.error("Không thể tải danh sách ca học");

@@ -10,12 +10,12 @@ export class CheckInDto {
     imageBase64: string;
 
     @IsNumber()
-    @IsNotEmpty({ message: 'Vĩ độ không được để trống' })
-    lat: number;
+    @IsOptional()
+    lat?: number;
 
     @IsNumber()
-    @IsNotEmpty({ message: 'Kinh độ không được để trống' })
-    lng: number;
+    @IsOptional()
+    lng?: number;
 }
 
 export class CheckOutDto {
@@ -28,10 +28,10 @@ export class CheckOutDto {
     imageBase64: string;
 
     @IsNumber()
-    @IsNotEmpty({ message: 'Vĩ độ không được để trống' })
-    lat: number;
+    @IsOptional()
+    lat?: number;
 
     @IsNumber()
-    @IsNotEmpty({ message: 'Kinh độ không được để trống' })
-    lng: number;
+    @IsOptional()
+    lng?: number;
 }

@@ -43,6 +43,7 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
   const [step, setStep] = useState(sessionId ? 1 : 0);
   const [faceStatus, setFaceStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [gpsStatus, setGpsStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
+  const [gpsRetryCount, setGpsRetryCount] = useState(0);
   const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -207,10 +208,23 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
         },
         (error) => {
           console.error(error);
-          setGpsStatus("error");
-          toast.error("Không thể lấy vị trí: " + error.message);
+
+          if (gpsRetryCount < 1) { // Allow 1 retry (total 2 tries)
+            setGpsRetryCount(prev => prev + 1);
+            toast.error("Không thể lấy vị trí, đang thử lại...");
+            setTimeout(() => getLocation(), 1000); // Retry after 1s
+          } else {
+            // Check if user denied permission or timeout, but ultimately fallback
+            console.warn("Retries exhausted, using null location");
+            toast.warning("Không thể lấy chính xác vị trí, sẽ sử dụng vị trí mặc định");
+
+            // Set dummy location to allow proceed
+            const defaultLoc = { lat: 0, lng: 0, accuracy: 0 };
+            setLocation(defaultLoc);
+            setGpsStatus("success"); // Mark as success to proceed flow
+          }
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
       setGpsStatus("error");

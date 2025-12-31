@@ -115,6 +115,7 @@ export class AttendanceService {
                     sessionId: checkOutDto.sessionId,
                 },
             },
+            include: { session: true },
         });
 
         if (!attendance) {
@@ -125,14 +126,24 @@ export class AttendanceService {
             throw new BadRequestException('Bạn đã check-out rồi');
         }
 
+        const checkOutTime = new Date();
+        const status = this.calculateStatus(
+            attendance.checkInTime!, // ensure it's not null, validated above logic implies existence or schema enforcement
+            attendance.session.startTime,
+            attendance.session.date,
+            checkOutTime,
+            attendance.session.endTime
+        );
+
         return this.prisma.attendance.update({
             where: { id: attendance.id },
             data: {
-                checkOutTime: new Date(),
+                checkOutTime: checkOutTime,
                 checkOutLat: checkOutDto.lat,
                 checkOutLng: checkOutDto.lng,
                 checkOutFaceScore: faceResult.score,
                 checkOutImageUrl: faceResult.imageUrl,
+                status: status,
             },
         });
     }
@@ -178,17 +189,81 @@ export class AttendanceService {
         });
     }
 
-    private calculateStatus(checkInTime: Date, sessionStartTime: string, sessionDate: string): AttendanceStatus {
-        const [hours, minutes] = sessionStartTime.split(':').map(Number);
+    async deleteCheckIn(id: string) {
+        return this.prisma.attendance.update({
+            where: { id },
+            data: {
+                checkInTime: null,
+                checkInLat: null,
+                checkInLng: null,
+                checkInFaceScore: null,
+                checkInImageUrl: null,
+                status: AttendanceStatus.ABSENT // Reset status if check-in is removed
+            }
+        });
+    }
+
+    async deleteCheckOut(id: string) {
+        // First get the attendance to check current check-in time for status recalculation
+        const attendance = await this.prisma.attendance.findUnique({
+            where: { id },
+            include: { session: true }
+        });
+
+        if (!attendance) throw new Error("Attendance not found");
+
+        let newStatus = attendance.status;
+        // If there's a check-in time, recalculate status based ONLY on check-in
+        if (attendance.checkInTime) {
+            const checkInStatus = this.calculateStatus(
+                attendance.checkInTime,
+                attendance.session.startTime,
+                attendance.session.date,
+                null, // No checkout time
+                attendance.session.endTime
+            );
+            newStatus = checkInStatus;
+        }
+
+        return this.prisma.attendance.update({
+            where: { id },
+            data: {
+                checkOutTime: null,
+                checkOutLat: null,
+                checkOutLng: null,
+                checkOutFaceScore: null,
+                checkOutImageUrl: null,
+                status: newStatus
+            }
+        });
+    }
+
+    private calculateStatus(
+        checkInTime: Date,
+        sessionStartTime: string,
+        sessionDate: string,
+        checkOutTime?: Date | null,
+        sessionEndTime?: string
+    ): AttendanceStatus {
         const startDateTime = new Date(`${sessionDate}T${sessionStartTime}:00`);
 
-        if (checkInTime <= startDateTime) {
-            return AttendanceStatus.PRESENT;
-        } else if (checkInTime.getTime() - startDateTime.getTime() <= 15 * 60 * 1000) {
-            // Within 15 minutes late
-            return AttendanceStatus.LATE;
-        } else {
-            return AttendanceStatus.ABSENT;
+        // Base status based on Check-in
+        let status: AttendanceStatus = AttendanceStatus.PRESENT;
+        if (checkInTime > startDateTime) {
+            status = AttendanceStatus.LATE;
         }
+
+        // Refine status based on Check-out
+        if (checkOutTime && sessionEndTime) {
+            const endDateTime = new Date(`${sessionDate}T${sessionEndTime}:00`);
+            // Allow 5 minutes buffer for early leave? Or strict? Let's be strict for now as requested.
+            if (checkOutTime < endDateTime) {
+                // Prioritize LEFT_EARLY over LATE? Or just set LEFT_EARLY? 
+                // User asked: "sớm trước giờ của ca thì trạng thái là về sớm".
+                status = AttendanceStatus.LEFT_EARLY;
+            }
+        }
+
+        return status;
     }
 }

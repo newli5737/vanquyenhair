@@ -100,16 +100,40 @@ export default function AttendanceViewer() {
                 return <Badge className="bg-orange-500">Trễ</Badge>;
             case "ABSENT":
                 return <Badge variant="destructive">Vắng</Badge>;
+            case "LEFT_EARLY":
+                return <Badge className="bg-yellow-500">Về sớm</Badge>;
             default:
                 return <Badge variant="secondary">Chưa rõ</Badge>;
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm("Bạn có chắc chắn muốn xóa lượt điểm danh này?")) return;
+        if (!window.confirm("Bạn có chắc chắn muốn xóa TOÀN BỘ lượt điểm danh này (Check-in & Check-out)?")) return;
         try {
             await attendanceApi.delete(id);
-            toast.success("Đã xóa thành công");
+            toast.success("Đã xóa hoàn toàn bản ghi");
+            loadAttendances();
+        } catch (error: any) {
+            toast.error(error.message || "Xóa thất bại");
+        }
+    };
+
+    const handleDeleteCheckIn = async (id: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa dữ liệu Check-in?")) return;
+        try {
+            await attendanceApi.deleteCheckIn(id);
+            toast.success("Đã xóa Check-in");
+            loadAttendances();
+        } catch (error: any) {
+            toast.error(error.message || "Xóa thất bại");
+        }
+    };
+
+    const handleDeleteCheckOut = async (id: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa dữ liệu Check-out?")) return;
+        try {
+            await attendanceApi.deleteCheckOut(id);
+            toast.success("Đã xóa Check-out");
             loadAttendances();
         } catch (error: any) {
             toast.error(error.message || "Xóa thất bại");
@@ -215,59 +239,60 @@ export default function AttendanceViewer() {
                                         <TableRow>
                                             <TableHead>Mã HV</TableHead>
                                             <TableHead>Họ tên</TableHead>
-                                            <TableHead>Ảnh Check-in</TableHead>
-                                            <TableHead>Check-in</TableHead>
-                                            <TableHead>Ảnh Check-out</TableHead>
-                                            <TableHead>Check-out</TableHead>
-                                            <TableHead className="hidden md:table-cell text-center">Face Score</TableHead>
-                                            <TableHead>Trạng thái</TableHead>
-                                            <TableHead>Hành động</TableHead>
+                                            <TableHead className="text-center">Vào</TableHead>
+                                            <TableHead className="text-center">Face Score</TableHead>
+                                            <TableHead className="text-center">Ra</TableHead>
+                                            <TableHead className="text-center">Face Score</TableHead>
+                                            <TableHead className="text-center">Trạng thái</TableHead>
+                                            <TableHead className="text-right">Hành động</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {attendances.map((attendance) => (
                                             <TableRow key={attendance.id}>
                                                 <TableCell className="font-medium">
-                                                    {attendance.student.studentCode}
+                                                    <div>{attendance.student.studentCode}</div>
+                                                    <div className="text-xs text-muted-foreground">{attendance.student.fullName}</div>
                                                 </TableCell>
-                                                <TableCell>{attendance.student.fullName}</TableCell>
+                                                <TableCell className="hidden md:table-cell">{attendance.student.fullName}</TableCell>
+
+                                                {/* Check-in Column */}
                                                 <TableCell>
-                                                    <ImagePreview src={attendance.checkInImageUrl} alt="Check-in" />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {attendance.checkInTime ? (
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">
-                                                                {new Date(attendance.checkInTime).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                            {attendance.checkInLat && (
-                                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                    <MapPin className="w-3 h-3" />
-                                                                    {attendance.checkInLat.toFixed(4)}, {attendance.checkInLng?.toFixed(4)}
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <ImagePreview src={attendance.checkInImageUrl} alt="Check-in" />
+                                                        {attendance.checkInTime ? (
+                                                            <div className="text-center">
+                                                                <div className="font-medium text-sm">
+                                                                    {new Date(attendance.checkInTime).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    ) : "-"}
+                                                                {attendance.checkInLat && (
+                                                                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                                                        <a
+                                                                            href={`https://www.google.com/maps?q=${attendance.checkInLat},${attendance.checkInLng}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="flex items-center hover:text-blue-600 transition-colors"
+                                                                            title="Xem bản đồ"
+                                                                        >
+                                                                            <MapPin className="w-3 h-3 mr-1" />
+                                                                            Xem vị trí
+                                                                        </a>
+                                                                    </div>
+                                                                )}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 mt-1 text-red-500 hover:text-red-700 hover:bg-red-50 text-xs"
+                                                                    onClick={() => handleDeleteCheckIn(attendance.id)}
+                                                                >
+                                                                    Xóa
+                                                                </Button>
+                                                            </div>
+                                                        ) : <span className="text-xs text-gray-400">-</span>}
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell>
-                                                    <ImagePreview src={attendance.checkOutImageUrl} alt="Check-out" />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {attendance.checkOutTime ? (
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">
-                                                                {new Date(attendance.checkOutTime).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                            {attendance.checkOutLat && (
-                                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                    <MapPin className="w-3 h-3" />
-                                                                    {attendance.checkOutLat.toFixed(4)}, {attendance.checkOutLng?.toFixed(4)}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : "-"}
-                                                </TableCell>
-                                                <TableCell className="hidden md:table-cell text-center">
+
+                                                <TableCell className="text-center">
                                                     {attendance.checkInFaceScore ? (
                                                         <Badge variant="outline" className={
                                                             attendance.checkInFaceScore > 0.9 ? "text-green-600 border-green-200 bg-green-50" : "text-yellow-600"
@@ -276,15 +301,63 @@ export default function AttendanceViewer() {
                                                         </Badge>
                                                     ) : "-"}
                                                 </TableCell>
-                                                <TableCell>{getStatusBadge(attendance.status)}</TableCell>
+
+                                                {/* Check-out Column */}
                                                 <TableCell>
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <ImagePreview src={attendance.checkOutImageUrl} alt="Check-out" />
+                                                        {attendance.checkOutTime ? (
+                                                            <div className="text-center">
+                                                                <div className="font-medium text-sm">
+                                                                    {new Date(attendance.checkOutTime).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                                                                </div>
+                                                                {attendance.checkOutLat && (
+                                                                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                                                        <a
+                                                                            href={`https://www.google.com/maps?q=${attendance.checkOutLat},${attendance.checkOutLng}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="flex items-center hover:text-blue-600 transition-colors"
+                                                                            title="Xem bản đồ"
+                                                                        >
+                                                                            <MapPin className="w-3 h-3 mr-1" />
+                                                                            Xem vị trí
+                                                                        </a>
+                                                                    </div>
+                                                                )}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 mt-1 text-red-500 hover:text-red-700 hover:bg-red-50 text-xs"
+                                                                    onClick={() => handleDeleteCheckOut(attendance.id)}
+                                                                >
+                                                                    Xóa
+                                                                </Button>
+                                                            </div>
+                                                        ) : <span className="text-xs text-gray-400">-</span>}
+                                                    </div>
+                                                </TableCell>
+
+                                                <TableCell className="text-center">
+                                                    {attendance.checkOutFaceScore ? (
+                                                        <Badge variant="outline" className={
+                                                            attendance.checkOutFaceScore > 0.9 ? "text-green-600 border-green-200 bg-green-50" : "text-yellow-600"
+                                                        }>
+                                                            {(attendance.checkOutFaceScore * 100).toFixed(0)}%
+                                                        </Badge>
+                                                    ) : "-"}
+                                                </TableCell>
+
+                                                <TableCell className="text-center">{getStatusBadge(attendance.status)}</TableCell>
+
+                                                <TableCell className="text-right">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
                                                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                                         onClick={() => handleDelete(attendance.id)}
                                                     >
-                                                        Xóa
+                                                        Xóa Hết
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>

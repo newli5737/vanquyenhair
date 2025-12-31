@@ -192,6 +192,18 @@ export const attendanceApi = {
             method: 'DELETE',
         });
     },
+
+    deleteCheckIn: async (id: string) => {
+        return apiCall(`/admin/attendance/${id}/check-in`, {
+            method: 'DELETE',
+        });
+    },
+
+    deleteCheckOut: async (id: string) => {
+        return apiCall(`/admin/attendance/${id}/check-out`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Enrollment API

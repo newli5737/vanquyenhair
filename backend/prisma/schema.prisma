@@ -19,6 +19,7 @@ enum AttendanceStatus {
   PRESENT
   LATE
   ABSENT
+  LEFT_EARLY
 }
 
 enum ClassEnrollmentStatus {

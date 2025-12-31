@@ -55,6 +55,20 @@ export class AttendanceController {
         return this.attendanceService.deleteAttendance(id);
     }
 
+    @Delete('admin/attendance/:id/check-in')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async deleteCheckIn(@Param('id') id: string) {
+        return this.attendanceService.deleteCheckIn(id);
+    }
+
+    @Delete('admin/attendance/:id/check-out')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async deleteCheckOut(@Param('id') id: string) {
+        return this.attendanceService.deleteCheckOut(id);
+    }
+
     @Get('student/attendance')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.STUDENT)

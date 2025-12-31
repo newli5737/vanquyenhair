@@ -21,7 +21,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { toast } from "sonner";
-import { Plus, Edit, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
+import { Plus, Edit, CheckCircle2, XCircle, ArrowLeft, GraduationCap } from "lucide-react";
 import { studentApi } from "../../services/api";
 import { uploadToCloudinary } from "../../services/cloudinary";
 import { useNavigate } from "react-router-dom";
@@ -298,68 +298,132 @@ export default function StudentManagement() {
                             Chưa có học viên nào
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Mã HV</TableHead>
-                                        <TableHead>Họ tên</TableHead>
-                                        <TableHead className="hidden md:table-cell">Email</TableHead>
-                                        <TableHead className="hidden sm:table-cell">SĐT</TableHead>
-                                        <TableHead>Khuôn mặt</TableHead>
-                                        <TableHead className="text-right">Thao tác</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {students.map((student) => (
-                                        <TableRow key={student.id}>
-                                            <TableCell className="font-medium">
-                                                {student.studentCode}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {student.avatarUrl && (
+                        <div className="space-y-4">
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Mã HV</TableHead>
+                                            <TableHead>Họ tên</TableHead>
+                                            <TableHead className="hidden lg:table-cell">Email</TableHead>
+                                            <TableHead className="hidden sm:table-cell">SĐT</TableHead>
+                                            <TableHead>Khuôn mặt</TableHead>
+                                            <TableHead className="text-right">Thao tác</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {students.map((student) => (
+                                            <TableRow key={student.id}>
+                                                <TableCell className="font-medium whitespace-nowrap">
+                                                    {student.studentCode}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {student.avatarUrl && (
+                                                            <img
+                                                                src={student.avatarUrl}
+                                                                alt={student.fullName}
+                                                                className="w-8 h-8 rounded-full object-cover"
+                                                            />
+                                                        )}
+                                                        <span className="font-medium">{student.fullName}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="hidden lg:table-cell">
+                                                    {student.user.email}
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell">
+                                                    {student.phone}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {student.faceRegistered ? (
+                                                        <Badge variant="default" className="gap-1 bg-green-100 text-green-700 hover:bg-green-100 border-none">
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            Đã đăng ký
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="gap-1 bg-gray-100 text-gray-500 border-none">
+                                                            <XCircle className="w-3 h-3" />
+                                                            Chưa có
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleOpenDialog(student)}
+                                                        className="h-8 w-8 p-0"
+                                                    >
+                                                        <Edit className="w-4 h-4 text-indigo-600" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden grid grid-cols-1 gap-4">
+                                {students.map((student) => (
+                                    <Card key={student.id} className="overflow-hidden border-indigo-100/50">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    {student.avatarUrl ? (
                                                         <img
                                                             src={student.avatarUrl}
                                                             alt={student.fullName}
-                                                            className="w-8 h-8 rounded-full object-cover"
+                                                            className="w-12 h-12 rounded-full object-cover border-2 border-indigo-50"
                                                         />
+                                                    ) : (
+                                                        <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center">
+                                                            <GraduationCap className="w-6 h-6 text-indigo-300" />
+                                                        </div>
                                                     )}
-                                                    <span>{student.fullName}</span>
+                                                    <div>
+                                                        <p className="font-bold text-gray-900">{student.fullName}</p>
+                                                        <p className="text-xs text-indigo-600 font-semibold">{student.studentCode}</p>
+                                                    </div>
                                                 </div>
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell">
-                                                {student.user.email}
-                                            </TableCell>
-                                            <TableCell className="hidden sm:table-cell">
-                                                {student.phone}
-                                            </TableCell>
-                                            <TableCell>
-                                                {student.faceRegistered ? (
-                                                    <Badge variant="default" className="gap-1">
-                                                        <CheckCircle2 className="w-3 h-3" />
-                                                        Đã đăng ký
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary" className="gap-1">
-                                                        <XCircle className="w-3 h-3" />
-                                                        Chưa đăng ký
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
                                                     onClick={() => handleOpenDialog(student)}
+                                                    className="h-8 w-8 p-0 shrink-0"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                            </div>
+
+                                            <div className="mt-4 space-y-2 text-sm border-t pt-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Email:</span>
+                                                    <span className="text-gray-900 truncate max-w-[180px]">{student.user.email}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">SĐT:</span>
+                                                    <span className="text-gray-900">{student.phone}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-gray-500">Khuôn mặt:</span>
+                                                    {student.faceRegistered ? (
+                                                        <Badge variant="default" className="text-[10px] bg-green-100 text-green-700 hover:bg-green-100 border-none">
+                                                            Đã đăng ký
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-500 border-none">
+                                                            Chưa có
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </CardContent>

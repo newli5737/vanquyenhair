@@ -4,6 +4,7 @@ import { Plus, Search, Edit, Trash2, BookOpen, Users } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Badge } from "../ui/badge";
 import {
     Table,
     TableBody,
@@ -171,69 +172,137 @@ export default function ClassManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Mã lớp</TableHead>
-                                    <TableHead>Tên lớp</TableHead>
-                                    <TableHead>Năm</TableHead>
-                                    <TableHead>Loại</TableHead>
-                                    <TableHead>Địa điểm</TableHead>
-                                    <TableHead className="text-right">Hành động</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredClasses.length === 0 ? (
+                    <div className="space-y-4">
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block rounded-md border">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                            Không tìm thấy lớp học nào.
-                                        </TableCell>
+                                        <TableHead>Mã lớp</TableHead>
+                                        <TableHead>Tên lớp</TableHead>
+                                        <TableHead>Năm</TableHead>
+                                        <TableHead>Loại</TableHead>
+                                        <TableHead>Địa điểm</TableHead>
+                                        <TableHead className="text-right">Hành động</TableHead>
                                     </TableRow>
-                                ) : (
-                                    filteredClasses.map((cls) => (
-                                        <TableRow key={cls.id}>
-                                            <TableCell className="font-medium">{cls.code}</TableCell>
-                                            <TableCell>{cls.name}</TableCell>
-                                            <TableCell>{cls.year}</TableCell>
-                                            <TableCell>
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls.type === 'NAIL' ? 'bg-pink-100 text-pink-800' :
-                                                    cls.type === 'HAIR' ? 'bg-indigo-100 text-indigo-800' :
-                                                        'bg-slate-100 text-slate-800'
-                                                    }`}>
-                                                    {cls.type}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="flex items-center gap-1 text-sm text-gray-600">
-                                                    {cls.location === 'CAN_THO' ? 'Cần Thơ' : 'Hồ Chí Minh'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" onClick={() => {
-                                                        navigate(`/admin/class-enrollment?classId=${cls.id}&className=${encodeURIComponent(cls.name)}`);
-                                                    }} title="Xem yêu cầu đăng ký" className="relative">
-                                                        <Users className="w-4 h-4 text-green-600" />
-                                                        {cls.pendingCount ? (
-                                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                                                                {cls.pendingCount}
-                                                            </span>
-                                                        ) : null}
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(cls)}>
-                                                        <Edit className="w-4 h-4 text-blue-600" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(cls.id)}>
-                                                        <Trash2 className="w-4 h-4 text-red-600" />
-                                                    </Button>
-                                                </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredClasses.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                                Không tìm thấy lớp học nào.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                    ) : (
+                                        filteredClasses.map((cls) => (
+                                            <TableRow key={cls.id}>
+                                                <TableCell className="font-medium">{cls.code}</TableCell>
+                                                <TableCell>{cls.name}</TableCell>
+                                                <TableCell>{cls.year}</TableCell>
+                                                <TableCell>
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls.type === 'NAIL' ? 'bg-pink-100 text-pink-800' :
+                                                        cls.type === 'HAIR' ? 'bg-indigo-100 text-indigo-800' :
+                                                            'bg-slate-100 text-slate-800'
+                                                        }`}>
+                                                        {cls.type}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="flex items-center gap-1 text-sm text-gray-600">
+                                                        {cls.location === 'CAN_THO' ? 'Cần Thơ' : 'Hồ Chí Minh'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => {
+                                                            navigate(`/admin/class-enrollment?classId=${cls.id}&className=${encodeURIComponent(cls.name)}`);
+                                                        }} title="Xem yêu cầu đăng ký" className="relative h-8 w-8">
+                                                            <Users className="w-4 h-4 text-green-600" />
+                                                            {cls.pendingCount ? (
+                                                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                                                                    {cls.pendingCount}
+                                                                </span>
+                                                            ) : null}
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(cls)} className="h-8 w-8">
+                                                            <Edit className="w-4 h-4 text-blue-600" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(cls.id)} className="h-8 w-8">
+                                                            <Trash2 className="w-4 h-4 text-red-600" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden space-y-4">
+                            {filteredClasses.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground border rounded-lg bg-gray-50/50">
+                                    Không tìm thấy lớp học nào.
+                                </div>
+                            ) : (
+                                filteredClasses.map((cls) => (
+                                    <Card key={cls.id} className="overflow-hidden border-indigo-100/50">
+                                        <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between space-y-0">
+                                            <div className="space-y-1">
+                                                <Badge variant="outline" className="text-[10px] font-bold text-indigo-600 border-indigo-200">
+                                                    {cls.code}
+                                                </Badge>
+                                                <CardTitle className="text-base font-bold">{cls.name}</CardTitle>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => {
+                                                    navigate(`/admin/class-enrollment?classId=${cls.id}&className=${encodeURIComponent(cls.name)}`);
+                                                }} className="h-8 w-8 relative">
+                                                    <Users className="w-4 h-4 text-green-600" />
+                                                    {cls.pendingCount ? (
+                                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                                                            {cls.pendingCount}
+                                                        </span>
+                                                    ) : null}
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(cls)} className="h-8 w-8">
+                                                    <Edit className="w-4 h-4 text-blue-600" />
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-4 pt-2">
+                                            <div className="grid grid-cols-2 gap-4 text-sm mt-2 border-t pt-3">
+                                                <div className="space-y-1">
+                                                    <p className="text-gray-500 text-[10px] uppercase font-semibold">Loại lớp</p>
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${cls.type === 'NAIL' ? 'bg-pink-100 text-pink-800' :
+                                                        cls.type === 'HAIR' ? 'bg-indigo-100 text-indigo-800' :
+                                                            'bg-slate-100 text-slate-800'
+                                                        }`}>
+                                                        {cls.type}
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-gray-500 text-[10px] uppercase font-semibold">Địa điểm</p>
+                                                    <p className="font-medium text-gray-700">
+                                                        {cls.location === 'CAN_THO' ? 'Cần Thơ' : 'Hồ Chí Minh'}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-gray-500 text-[10px] uppercase font-semibold">Năm</p>
+                                                    <p className="font-medium text-gray-700">{cls.year}</p>
+                                                </div>
+                                                <div className="flex justify-end items-end">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(cls.id)} className="h-8 w-8 text-red-500">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -242,7 +311,7 @@ export default function ClassManagement() {
 
 
             {/* Add Modal */}
-            < Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen} >
+            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Thêm lớp học mới</DialogTitle>
@@ -311,10 +380,10 @@ export default function ClassManagement() {
                         </DialogFooter>
                     </form>
                 </DialogContent>
-            </Dialog >
+            </Dialog>
 
             {/* Edit Modal */}
-            < Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen} >
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Chỉnh sửa lớp học</DialogTitle>
@@ -381,7 +450,7 @@ export default function ClassManagement() {
                         </DialogFooter>
                     </form>
                 </DialogContent>
-            </Dialog >
+            </Dialog>
         </div >
     );
 }

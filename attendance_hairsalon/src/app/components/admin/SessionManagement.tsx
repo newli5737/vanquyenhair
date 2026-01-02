@@ -324,6 +324,7 @@ export default function SessionManagement() {
                                         </form>
                                     </DialogContent>
                                 </Dialog>
+                            </div>
                         </CardHeader>
 
                         <CardContent>

@@ -46,4 +46,14 @@ export class TrainingClassController {
     async remove(@Param('id') id: string) {
         return this.trainingClassService.remove(id);
     }
+
+    @Delete(':classId/students/:studentId')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async removeStudentFromClass(
+        @Param('classId') classId: string,
+        @Param('studentId') studentId: string,
+    ) {
+        return this.trainingClassService.removeStudentFromClass(classId, studentId);
+    }
 }

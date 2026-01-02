@@ -64,7 +64,9 @@ export class TrainingClassService {
                     name: data.name,
                     type: data.type,
                     location: data.location,
-                    year: data.year
+                    year: data.year,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
                 }
             });
         } catch (error) {
@@ -86,7 +88,9 @@ export class TrainingClassService {
                 name: data.name,
                 type: data.type,
                 location: data.location,
-                year: data.year
+                year: data.year,
+                latitude: data.latitude,
+                longitude: data.longitude,
             }
         });
     }
@@ -94,6 +98,54 @@ export class TrainingClassService {
     async remove(id: string) {
         return this.prisma.trainingClass.delete({
             where: { id }
+        });
+    }
+
+    async removeStudentFromClass(classId: string, studentId: string) {
+        // Use transaction to ensure all deletions happen atomically
+        return this.prisma.$transaction(async (tx) => {
+            // Get all sessions of this class
+            const sessions = await tx.classSession.findMany({
+                where: { trainingClassId: classId },
+                select: { id: true },
+            });
+
+            const sessionIds = sessions.map(s => s.id);
+
+            // Delete all attendances for this student in this class
+            if (sessionIds.length > 0) {
+                await tx.attendance.deleteMany({
+                    where: {
+                        studentId,
+                        sessionId: { in: sessionIds },
+                    },
+                });
+
+                // Delete all session registrations for this student in this class
+                await tx.sessionRegistration.deleteMany({
+                    where: {
+                        studentId,
+                        sessionId: { in: sessionIds },
+                    },
+                });
+            }
+
+            // Delete enrollment request
+            await tx.classEnrollmentRequest.deleteMany({
+                where: {
+                    studentId,
+                    trainingClassId: classId,
+                },
+            });
+
+            return {
+                message: 'Đã xóa học viên khỏi lớp học thành công',
+                deletedRecords: {
+                    enrollments: 1,
+                    sessionRegistrations: sessionIds.length,
+                    attendances: sessionIds.length,
+                },
+            };
         });
     }
 }

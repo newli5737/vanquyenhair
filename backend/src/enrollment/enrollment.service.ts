@@ -154,19 +154,50 @@ export class EnrollmentService {
             throw new BadRequestException('Yêu cầu đã được xử lý rồi');
         }
 
-        // Update request
-        const updatedRequest = await this.prisma.classEnrollmentRequest.update({
-            where: { id: requestId },
-            data: {
-                status: status === 'APPROVED' ? ClassEnrollmentStatus.APPROVED : ClassEnrollmentStatus.REJECTED,
-                reviewedAt: new Date(),
-                reviewedBy: adminId,
-                rejectionReason: status === 'REJECTED' ? rejectionReason : null,
-            },
-            include: {
-                student: true,
-                trainingClass: true,
-            },
+        // Use transaction to update request and auto-register for sessions
+        const updatedRequest = await this.prisma.$transaction(async (tx) => {
+            // Update request
+            const updated = await tx.classEnrollmentRequest.update({
+                where: { id: requestId },
+                data: {
+                    status: status === 'APPROVED' ? ClassEnrollmentStatus.APPROVED : ClassEnrollmentStatus.REJECTED,
+                    reviewedAt: new Date(),
+                    reviewedBy: adminId,
+                    rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+                },
+                include: {
+                    student: true,
+                    trainingClass: true,
+                },
+            });
+
+            // If approved, auto-register for all future sessions
+            if (status === 'APPROVED') {
+                // Get all sessions of the class that haven't passed registration deadline
+                const sessions = await tx.classSession.findMany({
+                    where: {
+                        trainingClassId: request.trainingClassId,
+                        isDeleted: false,
+                        registrationDeadline: {
+                            gte: new Date(), // Only future sessions
+                        },
+                    },
+                });
+
+                // Create session registrations for all sessions
+                // Use createMany with skipDuplicates to avoid conflicts
+                if (sessions.length > 0) {
+                    await tx.sessionRegistration.createMany({
+                        data: sessions.map(session => ({
+                            studentId: request.studentId,
+                            sessionId: session.id,
+                        })),
+                        skipDuplicates: true, // Skip if already registered
+                    });
+                }
+            }
+
+            return updated;
         });
 
         return updatedRequest;

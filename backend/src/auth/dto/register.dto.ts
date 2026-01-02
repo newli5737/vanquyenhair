@@ -5,9 +5,13 @@ export class RegisterDto {
     @IsNotEmpty({ message: 'Họ tên không được để trống' })
     fullName: string;
 
+    @IsString()
+    @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
+    phone: string;
+
     @IsEmail({}, { message: 'Email không hợp lệ' })
-    @IsNotEmpty({ message: 'Email không được để trống' })
-    email: string;
+    @IsOptional()
+    email?: string;
 
     @IsString()
     @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })

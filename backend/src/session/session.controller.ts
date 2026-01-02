@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { CreateSessionDto } from './dto/session.dto';
+import { BulkCreateSessionDto } from './dto/bulk-create-session.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -37,6 +38,13 @@ export class SessionController {
     @Roles(Role.ADMIN)
     async deleteSession(@Param('id') id: string) {
         return this.sessionService.deleteSession(id);
+    }
+
+    @Post('admin/sessions/bulk-create')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async bulkCreateSessions(@Body() bulkDto: BulkCreateSessionDto) {
+        return this.sessionService.bulkCreateSessions(bulkDto);
     }
 
     // Student endpoints

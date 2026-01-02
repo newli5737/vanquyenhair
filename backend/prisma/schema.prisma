@@ -31,7 +31,8 @@ enum ClassEnrollmentStatus {
 model User {
   id           String          @id @default(uuid())
   role         Role
-  email        String          @unique
+  phone        String?         @unique
+  email        String?         @unique
   passwordHash String
   createdAt    DateTime        @default(now())
   
@@ -78,6 +79,8 @@ model TrainingClass {
   name      String
   type      ClassType
   location  ClassLocation
+  latitude  Float?
+  longitude Float?
   year      String        @default("2025") // e.g., "2025" or "2024-2025"
   createdAt DateTime      @default(now())
 
@@ -133,6 +136,7 @@ model Attendance {
   checkOutFaceScore Float?
   checkOutImageUrl  String?
   status            AttendanceStatus  @default(ABSENT)
+  locationNote      String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   

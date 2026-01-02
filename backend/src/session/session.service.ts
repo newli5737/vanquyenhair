@@ -160,4 +160,84 @@ export class SessionService {
             },
         });
     }
+
+    async bulkCreateSessions(bulkDto: any) {
+        // Verify training class exists
+        const trainingClass = await this.prisma.trainingClass.findUnique({
+            where: { id: bulkDto.trainingClassId },
+        });
+
+        if (!trainingClass) {
+            throw new NotFoundException('Không tìm thấy lớp học');
+        }
+
+        // Generate list of dates
+        const startDate = new Date(bulkDto.startDate);
+        const endDate = new Date(bulkDto.endDate);
+        const dates: string[] = [];
+
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
+
+            // Skip weekends if requested
+            if (bulkDto.excludeWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) {
+                continue;
+            }
+
+            // Skip Saturday only if requested
+            if (bulkDto.excludeSaturday && !bulkDto.excludeWeekends && dayOfWeek === 6) {
+                continue;
+            }
+
+            dates.push(d.toISOString().split('T')[0]);
+        }
+
+        // Create sessions in transaction
+        const createdSessions = await this.prisma.$transaction(async (tx) => {
+            const sessions: any[] = [];
+
+            for (const date of dates) {
+                // Check existing sessions for this date
+                const existingSessions = await tx.classSession.findMany({
+                    where: {
+                        date,
+                        trainingClassId: bulkDto.trainingClassId,
+                        isDeleted: false,
+                    },
+                });
+
+                // Skip if already has 3 sessions
+                if (existingSessions.length >= 3) {
+                    continue;
+                }
+
+                // Create sessions for this date
+                for (const sessionTemplate of bulkDto.sessions) {
+                    const startDateTime = new Date(`${date}T${sessionTemplate.startTime}:00`);
+                    const registrationDeadline = new Date(startDateTime.getTime() - 2 * 60 * 60 * 1000);
+
+                    const session = await tx.classSession.create({
+                        data: {
+                            date,
+                            name: sessionTemplate.name,
+                            startTime: sessionTemplate.startTime,
+                            endTime: sessionTemplate.endTime,
+                            registrationDeadline,
+                            trainingClassId: bulkDto.trainingClassId,
+                        },
+                    });
+
+                    sessions.push(session);
+                }
+            }
+
+            return sessions;
+        });
+
+        return {
+            message: `Đã tạo ${createdSessions.length} ca học thành công`,
+            count: createdSessions.length,
+            sessions: createdSessions,
+        };
+    }
 }

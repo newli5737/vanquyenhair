@@ -14,14 +14,15 @@ export class AuthService {
     ) { }
 
     async login(loginDto: LoginDto) {
-        const user = await this.validateUser(loginDto.email, loginDto.password);
+        const user = await this.validateUser(loginDto.phone, loginDto.password);
 
         if (!user) {
-            throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+            throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
         }
 
         const payload = {
             sub: user.id,
+            phone: user.phone,
             email: user.email,
             role: user.role
         };
@@ -30,22 +31,32 @@ export class AuthService {
             access_token: this.jwtService.sign(payload),
             user: {
                 id: user.id,
+                phone: user.phone,
                 email: user.email,
                 role: user.role,
-                // Include profile info if available? 
-                // Currently just user info.
             },
         };
     }
 
     async register(registerDto: any) {
-        // Check if user exists
+        // Check if user exists by phone
         const existingUser = await this.prisma.user.findUnique({
-            where: { email: registerDto.email },
+            where: { phone: registerDto.phone },
         });
 
         if (existingUser) {
-            throw new UnauthorizedException('Email đã tồn tại');
+            throw new UnauthorizedException('Số điện thoại đã tồn tại');
+        }
+
+        // Check if email exists (if provided)
+        if (registerDto.email) {
+            const existingEmail = await this.prisma.user.findUnique({
+                where: { email: registerDto.email },
+            });
+
+            if (existingEmail) {
+                throw new UnauthorizedException('Email đã tồn tại');
+            }
         }
 
         const hashedPassword = await this.hashPassword(registerDto.password);
@@ -53,7 +64,8 @@ export class AuthService {
         // Create User
         const user = await this.prisma.user.create({
             data: {
-                email: registerDto.email,
+                phone: registerDto.phone,
+                email: registerDto.email || null,
                 passwordHash: hashedPassword,
                 role: 'STUDENT', // Default role
             },
@@ -83,17 +95,17 @@ export class AuthService {
                 userId: user.id,
                 fullName: registerDto.fullName,
                 studentCode: studentCode,
-                phone: '', // Default empty, update later
+                phone: registerDto.phone,
                 dateOfBirth: registerDto.dateOfBirth ? new Date(registerDto.dateOfBirth) : null,
             }
         });
 
-        return this.login({ email: registerDto.email, password: registerDto.password });
+        return this.login({ phone: registerDto.phone, password: registerDto.password });
     }
 
-    async validateUser(email: string, password: string) {
+    async validateUser(phone: string, password: string) {
         const user = await this.prisma.user.findUnique({
-            where: { email },
+            where: { phone },
         });
 
         if (!user) {

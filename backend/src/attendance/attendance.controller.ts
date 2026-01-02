@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { CheckInDto, CheckOutDto } from './dto/attendance.dto';
+import { WeeklyReportQueryDto } from './dto/attendance-stats.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -67,6 +68,17 @@ export class AttendanceController {
     @Roles(Role.ADMIN)
     async deleteCheckOut(@Param('id') id: string) {
         return this.attendanceService.deleteCheckOut(id);
+    }
+
+    @Get('admin/attendance/weekly-report')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async getWeeklyReport(
+        @Query('startDate') startDate: string,
+        @Query('endDate') endDate: string,
+        @Query('classId') classId?: string,
+    ) {
+        return this.attendanceService.getWeeklyReport(startDate, endDate, classId);
     }
 
     @Get('student/attendance')

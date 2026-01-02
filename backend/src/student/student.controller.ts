@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { StudentService } from './student.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,6 +37,12 @@ export class StudentController {
     @Roles(Role.ADMIN)
     async getStudentById(@Param('id') id: string) {
         return this.studentService.getStudentById(id);
+    }
+
+    @Delete('admin/students/:id')
+    @Roles(Role.ADMIN)
+    async deleteStudent(@Param('id') id: string) {
+        return this.studentService.deleteStudent(id);
     }
 
     // Student Endpoints

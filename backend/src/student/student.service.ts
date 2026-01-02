@@ -257,4 +257,15 @@ export class StudentService {
             phone: student.user.phone || '',
         };
     }
+
+    async deleteStudent(id: string) {
+        const student = await this.prisma.studentProfile.findUnique({ where: { id } });
+        if (!student) {
+            throw new NotFoundException('Không tìm thấy học viên');
+        }
+        await this.prisma.user.delete({
+            where: { id: student.userId },
+        });
+        return { message: 'Xóa học viên thành công' };
+    }
 }

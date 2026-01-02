@@ -95,9 +95,9 @@ export class AuthService {
                 userId: user.id,
                 fullName: registerDto.fullName,
                 studentCode: studentCode,
-                phone: registerDto.phone,
+                // phone removed
                 dateOfBirth: registerDto.dateOfBirth ? new Date(registerDto.dateOfBirth) : null,
-            }
+            } as any // Cast as any because generated client is outdated
         });
 
         return this.login({ phone: registerDto.phone, password: registerDto.password });

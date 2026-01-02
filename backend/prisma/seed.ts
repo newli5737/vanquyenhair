@@ -26,6 +26,7 @@ async function main() {
         update: {},
         create: {
             email: 'student@example.com',
+            phone: '0912345678',
             passwordHash: studentPassword,
             role: 'STUDENT',
         },
@@ -40,9 +41,9 @@ async function main() {
             userId: studentUser.id,
             studentCode: 'S0001',
             fullName: 'Nguyễn Văn An',
-            phone: '0912345678',
+            // phone removed from StudentProfile
             faceRegistered: false,
-        },
+        } as any, // Cast as any because generated client is outdated
     });
     console.log({ studentProfile });
 

@@ -21,7 +21,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { toast } from "sonner";
-import { Plus, Edit, CheckCircle2, XCircle, ArrowLeft, GraduationCap } from "lucide-react";
+import { Plus, Search, Edit, Eye, Filter, Download, Trash2, CheckCircle2, XCircle, ArrowLeft, GraduationCap } from "lucide-react";
 import { studentApi } from "../../services/api";
 import { uploadToCloudinary } from "../../services/cloudinary";
 import { useNavigate } from "react-router-dom";
@@ -154,6 +154,19 @@ export default function StudentManagement() {
             toast.error(error.message || "Có lỗi xảy ra");
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa học viên này? Hành động này không thể hoàn tác.")) {
+            return;
+        }
+        try {
+            await studentApi.remove(id);
+            toast.success("Xóa học viên thành công");
+            loadStudents();
+        } catch (error: any) {
+            toast.error(error.message || "Lỗi khi xóa học viên");
         }
     };
 
@@ -363,14 +376,24 @@ export default function StudentManagement() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleOpenDialog(student)}
-                                                        className="h-8 w-8 p-0"
-                                                    >
-                                                        <Edit className="w-4 h-4 text-indigo-600" />
-                                                    </Button>
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                            onClick={() => handleOpenDialog(student)}
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => handleDelete(student.id)}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

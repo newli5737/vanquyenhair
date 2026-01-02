@@ -137,6 +137,12 @@ export const studentApi = {
             body: JSON.stringify(data),
         });
     },
+
+    remove: async (id: string) => {
+        return apiCall(`/admin/students/${id}`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Session API

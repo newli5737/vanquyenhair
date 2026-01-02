@@ -105,10 +105,15 @@ export default function StudentManagement() {
                 avatarUrl = await uploadToCloudinary(avatarFile);
             }
 
-            const submitData = {
+            const submitData: any = {
                 ...formData,
                 avatarUrl,
             };
+
+            // Xóa studentCode nếu rỗng (để backend tự sinh)
+            if (!submitData.studentCode || submitData.studentCode.trim() === '') {
+                delete submitData.studentCode;
+            }
 
             if (editingStudent) {
                 // Update - only send fields that have values
@@ -177,28 +182,28 @@ export default function StudentManagement() {
                             </DialogHeader>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                {!editingStudent && (
-                                    <div className="p-3 bg-amber-50 text-amber-700 text-xs rounded-md border border-amber-200">
-                                        Mã học viên sẽ được hệ thống tự động sinh theo dạng SXXXX nếu để trống hoặc bạn có thể nhập thủ công.
+                                {editingStudent && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="studentCode">Mã học viên</Label>
+                                        <Input
+                                            id="studentCode"
+                                            value={formData.studentCode}
+                                            disabled
+                                            className="bg-gray-100"
+                                        />
                                     </div>
                                 )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="studentCode">Mã học viên *</Label>
-                                    <Input
-                                        id="studentCode"
-                                        value={formData.studentCode}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, studentCode: e.target.value })
-                                        }
-                                        required
-                                        disabled={!!editingStudent}
-                                        className={editingStudent ? "bg-gray-100" : ""}
-                                        placeholder="ST001"
-                                    />
-                                </div>
+                                {!editingStudent && (
+                                    <div className="p-3 bg-blue-50 text-blue-700 text-sm rounded-md border border-blue-200 flex items-start gap-2">
+                                        <div className="mt-0.5">ℹ️</div>
+                                        <div>
+                                            Mã học viên sẽ được hệ thống <strong>tự động sinh</strong> (VD: SV001).
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">Email *</Label>
+                                    <Label htmlFor="email">Email (Tùy chọn)</Label>
                                     <Input
                                         id="email"
                                         type="email"
@@ -206,7 +211,6 @@ export default function StudentManagement() {
                                         onChange={(e) =>
                                             setFormData({ ...formData, email: e.target.value })
                                         }
-                                        required
                                         placeholder="student@example.com"
                                     />
                                 </div>

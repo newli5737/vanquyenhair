@@ -53,6 +53,8 @@ export default function ClassManagement() {
         type: "NAIL",
         location: "CAN_THO",
         year: new Date().getFullYear().toString(),
+        latitude: 10.022098,
+        longitude: 105.788826,
     });
 
     useEffect(() => {
@@ -83,6 +85,8 @@ export default function ClassManagement() {
             type: "NAIL",
             location: "CAN_THO",
             year: new Date().getFullYear().toString(),
+            latitude: 10.022098,
+            longitude: 105.788826,
         });
         setCurrentClass(null);
     };
@@ -107,6 +111,8 @@ export default function ClassManagement() {
             type: cls.type,
             location: cls.location,
             year: cls.year || new Date().getFullYear().toString(),
+            latitude: (cls as any).latitude || 10.022098,
+            longitude: (cls as any).longitude || 105.788826,
         });
         setIsEditModalOpen(true);
     };

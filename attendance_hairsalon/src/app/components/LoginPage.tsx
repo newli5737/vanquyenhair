@@ -19,9 +19,9 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({ phone: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -32,27 +32,27 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     e.preventDefault();
 
     // Reset errors
-    setErrors({ email: "", password: "" });
+    setErrors({ phone: "", password: "" });
 
     // Validate
-    const newErrors = { email: "", password: "" };
+    const newErrors = { phone: "", password: "" };
 
-    if (!email) {
-      newErrors.email = "Vui lòng nhập email";
+    if (!phone) {
+      newErrors.phone = "Vui lòng nhập số điện thoại";
     }
 
     if (!password) {
       newErrors.password = "Vui lòng nhập mật khẩu";
     }
 
-    if (newErrors.email || newErrors.password) {
+    if (newErrors.phone || newErrors.password) {
       setErrors(newErrors);
       return;
     }
 
     try {
       setLoading(true);
-      const data = await authApi.login(email, password);
+      const data = await authApi.login(phone, password);
 
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -137,23 +137,23 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </div>
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Chào mừng học viên</h2>
-            <p className="text-gray-500 mt-2">Nhập email và mật khẩu để truy cập tài khoản của bạn</p>
+            <p className="text-gray-500 mt-2">Nhập số điện thoại và mật khẩu để truy cập tài khoản của bạn</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="phone">Số điện thoại</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`h-11 ${errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                id="phone"
+                type="tel"
+                placeholder="0123456789"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={`h-11 ${errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 disabled={loading}
               />
-              {errors.email && (
-                <p className="text-sm text-red-500 font-medium">{errors.email}</p>
+              {errors.phone && (
+                <p className="text-sm text-red-500 font-medium">{errors.phone}</p>
               )}
             </div>
 
@@ -215,7 +215,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <DialogHeader>
             <DialogTitle>Quên mật khẩu</DialogTitle>
             <DialogDescription>
-              Nhập email của bạn để nhận lại mật khẩu mới
+              Nhập email của bạn để nhận lại mật khẩu mới.<br />
+              <span className="text-amber-600 font-medium">Lưu ý: Nếu bạn không có email đã đăng ký, vui lòng liên hệ admin để reset mật khẩu.</span>
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">

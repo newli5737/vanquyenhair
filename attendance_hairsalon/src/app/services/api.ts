@@ -32,14 +32,14 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // Auth API
 export const authApi = {
-    login: async (email: string, password: string) => {
+    login: async (phone: string, password: string) => {
         return apiCall('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ phone, password }),
         });
     },
 
-    register: async (data: { fullName: string; email: string; password: string; dateOfBirth?: string }) => {
+    register: async (data: { fullName: string; phone: string; email?: string; password: string; dateOfBirth?: string }) => {
         return apiCall('/auth/register', {
             method: 'POST',
             body: JSON.stringify(data),
@@ -94,6 +94,12 @@ export const trainingClassApi = {
     getAvailableClasses: async () => {
         return apiCall('/training-classes/available');
     },
+
+    removeStudentFromClass: async (classId: string, studentId: string) => {
+        return apiCall(`/training-classes/${classId}/students/${studentId}`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Student API
@@ -146,6 +152,13 @@ export const sessionApi = {
         });
     },
 
+    bulkCreate: async (data: any) => {
+        return apiCall('/admin/sessions/bulk-create', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
     update: async (id: string, data: any) => {
         return apiCall(`/admin/sessions/${id}`, {
             method: 'PUT',
@@ -179,6 +192,15 @@ export const attendanceApi = {
         if (classId) params.append('classId', classId);
 
         return apiCall(`/admin/attendance?${params.toString()}`);
+    },
+
+    getWeeklyReport: async (startDate: string, endDate: string, classId?: string) => {
+        const params = new URLSearchParams();
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+        if (classId) params.append('classId', classId);
+
+        return apiCall(`/admin/attendance/weekly-report?${params.toString()}`);
     },
 
     checkIn: async (data: any) => {

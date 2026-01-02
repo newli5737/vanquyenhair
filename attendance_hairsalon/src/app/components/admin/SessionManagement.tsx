@@ -21,12 +21,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
-import { Plus, Clock, Edit2, Trash2, Calendar as CalendarIcon, AlertCircle, School } from "lucide-react";
+import { Plus, Clock, Edit2, Trash2, Calendar as CalendarIcon, AlertCircle, School, CalendarRange } from "lucide-react";
 import { sessionApi, trainingClassApi } from "../../services/api";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import BulkSessionDialog from "./BulkSessionDialog";
 
 export default function SessionManagement() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -49,6 +50,9 @@ export default function SessionManagement() {
         startTime: "",
         endTime: "",
     });
+
+    // Bulk session dialog
+    const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
 
     // Need to format date as YYYY-MM-DD for API
     const formattedDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
@@ -223,92 +227,103 @@ export default function SessionManagement() {
                                 </p>
                             </div>
 
-                            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button
-                                        disabled={!selectedDate || sessions.length >= 3}
-                                        onClick={() => handleOpenDialog()}
-                                        className="bg-indigo-600 hover:bg-indigo-700"
-                                    >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Thêm ca học
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            {editingSession ? "Chỉnh sửa ca học" : "Tạo ca học mới"}
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            {selectedDate && format(selectedDate, "'Ngày' dd 'tháng' MM 'năm' yyyy", { locale: vi })}
-                                        </DialogDescription>
-                                    </DialogHeader>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setBulkDialogOpen(true)}
+                                    disabled={!selectedClassId}
+                                    className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                                >
+                                    <CalendarRange className="w-4 h-4 mr-2" />
+                                    Tạo hàng loạt
+                                </Button>
 
-                                    <form onSubmit={handleSubmit} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="name">Tên ca học *</Label>
-                                            <Select
-                                                value={formData.name}
-                                                onValueChange={(value) =>
-                                                    setFormData({ ...formData, name: value })
-                                                }
-                                                required
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Chọn ca học" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Ca 1">Ca 1</SelectItem>
-                                                    <SelectItem value="Ca 2">Ca 2</SelectItem>
-                                                    <SelectItem value="Ca 3">Ca 3</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            disabled={!selectedDate || sessions.length >= 3}
+                                            onClick={() => handleOpenDialog()}
+                                            className="bg-indigo-600 hover:bg-indigo-700"
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Thêm ca học
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>
+                                                {editingSession ? "Chỉnh sửa ca học" : "Tạo ca học mới"}
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                {selectedDate && format(selectedDate, "'Ngày' dd 'tháng' MM 'năm' yyyy", { locale: vi })}
+                                            </DialogDescription>
+                                        </DialogHeader>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <form onSubmit={handleSubmit} className="space-y-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="startTime">Giờ bắt đầu *</Label>
-                                                <Input
-                                                    id="startTime"
-                                                    type="time"
-                                                    value={formData.startTime}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, startTime: e.target.value })
+                                                <Label htmlFor="name">Tên ca học *</Label>
+                                                <Select
+                                                    value={formData.name}
+                                                    onValueChange={(value) =>
+                                                        setFormData({ ...formData, name: value })
                                                     }
                                                     required
-                                                />
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Chọn ca học" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Ca 1">Ca 1</SelectItem>
+                                                        <SelectItem value="Ca 2">Ca 2</SelectItem>
+                                                        <SelectItem value="Ca 3">Ca 3</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label htmlFor="endTime">Giờ kết thúc *</Label>
-                                                <Input
-                                                    id="endTime"
-                                                    type="time"
-                                                    value={formData.endTime}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, endTime: e.target.value })
-                                                    }
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="startTime">Giờ bắt đầu *</Label>
+                                                    <Input
+                                                        id="startTime"
+                                                        type="time"
+                                                        value={formData.startTime}
+                                                        onChange={(e) =>
+                                                            setFormData({ ...formData, startTime: e.target.value })
+                                                        }
+                                                        required
+                                                    />
+                                                </div>
 
-                                        <div className="flex gap-2 pt-4">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => setDialogOpen(false)}
-                                                className="flex-1"
-                                            >
-                                                Hủy
-                                            </Button>
-                                            <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700">
-                                                {editingSession ? "Cập nhật" : "Tạo mới"}
-                                            </Button>
-                                        </div>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="endTime">Giờ kết thúc *</Label>
+                                                    <Input
+                                                        id="endTime"
+                                                        type="time"
+                                                        value={formData.endTime}
+                                                        onChange={(e) =>
+                                                            setFormData({ ...formData, endTime: e.target.value })
+                                                        }
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 pt-4">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => setDialogOpen(false)}
+                                                    className="flex-1"
+                                                >
+                                                    Hủy
+                                                </Button>
+                                                <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700">
+                                                    {editingSession ? "Cập nhật" : "Tạo mới"}
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
                         </CardHeader>
 
                         <CardContent>
@@ -401,6 +416,14 @@ export default function SessionManagement() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Bulk Session Dialog */}
+            <BulkSessionDialog
+                open={bulkDialogOpen}
+                onOpenChange={setBulkDialogOpen}
+                classId={selectedClassId}
+                onSuccess={loadSessions}
+            />
         </div>
     );
 }

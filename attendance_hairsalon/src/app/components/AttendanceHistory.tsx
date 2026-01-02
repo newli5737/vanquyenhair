@@ -33,6 +33,7 @@ interface AttendanceRecord {
   checkOutTime: string;
   status: "PRESENT" | "LATE" | "ABSENT" | "LEFT_EARLY";
   note?: string;
+  locationNote?: string;
   checkInLat?: number;
   checkInLng?: number;
   checkInFaceScore?: number;
@@ -127,6 +128,7 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
           checkOutTime: checkOutStr,
           status: item.status,
           note: item.notes,
+          locationNote: item.locationNote,
           checkInLat: item.checkInLat,
           checkInLng: item.checkInLng,
           checkInFaceScore: item.checkInFaceScore,
@@ -390,6 +392,21 @@ export default function AttendanceHistory({ onLogout }: AttendanceHistoryProps) 
                             </div>
                           </div>
                         </div>
+
+                        {/* Location Note */}
+                        {record.locationNote && (
+                          <div className="mt-3 pt-3 border-t">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${record.locationNote.includes('xa lớp học')
+                                  ? 'bg-yellow-50 text-yellow-700 border-yellow-300'
+                                  : 'bg-gray-50 text-gray-600 border-gray-300'
+                                }`}
+                            >
+                              📍 {record.locationNote}
+                            </Badge>
+                          </div>
+                        )}
 
                         {record.note && (
                           <div className="mt-2 pt-2 border-t border-dashed text-sm text-gray-500 italic">

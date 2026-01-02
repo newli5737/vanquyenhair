@@ -10,6 +10,7 @@ import { GraduationCap, ArrowRight, CheckCircle2 } from "lucide-react";
 const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
     const [formData, setFormData] = useState({
         fullName: '',
+        phone: '',
         email: '',
         password: '',
         confirmPassword: '',
@@ -38,7 +39,8 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
         try {
             const data = await authApi.register({
                 fullName: formData.fullName,
-                email: formData.email,
+                phone: formData.phone,
+                email: formData.email || undefined,
                 password: formData.password,
                 dateOfBirth: formData.dateOfBirth || undefined,
             });
@@ -118,12 +120,24 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="phone">Số điện thoại *</Label>
+                            <Input
+                                id="phone"
+                                type="tel"
+                                placeholder="0123456789"
+                                required
+                                value={formData.phone}
+                                onChange={handleChange}
+                                className="h-11"
+                                disabled={isLoading}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email (tùy chọn)</Label>
                             <Input
                                 id="email"
                                 type="email"
                                 placeholder="email@example.com"
-                                required
                                 value={formData.email}
                                 onChange={handleChange}
                                 className="h-11"

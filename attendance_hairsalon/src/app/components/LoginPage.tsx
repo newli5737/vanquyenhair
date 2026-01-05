@@ -54,9 +54,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       setLoading(true);
       const data = await authApi.login(phone, password);
 
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
+      // authApi already saves to sessionStorage
       toast.success("Đăng nhập thành công!");
       onLogin(data.user);
 

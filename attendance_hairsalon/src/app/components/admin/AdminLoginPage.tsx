@@ -51,9 +51,7 @@ export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
                 return;
             }
 
-            localStorage.setItem('token', response.access_token);
-            localStorage.setItem('user', JSON.stringify(response.user));
-
+            // authApi already saves to sessionStorage
             toast.success("Đăng nhập thành công!");
             onLogin(response.user);
             navigate("/admin/dashboard");

@@ -45,9 +45,7 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
                 dateOfBirth: formData.dateOfBirth || undefined,
             });
 
-            // Login successful after register (backend returns token)
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            // authApi already saves to sessionStorage
             onLogin(data.user);
             navigate('/');
             toast.success('Đăng ký thành công');

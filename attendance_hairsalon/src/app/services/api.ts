@@ -2,30 +2,69 @@ const API_BASE_URL = 'https://recently-pathology-considerable-logged.trycloudfla
 
 // const API_BASE_URL = 'http://localhost:8002';
 
-const getAuthToken = () => {
-    return localStorage.getItem('token');
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+const tryRefreshToken = async (): Promise<boolean> => {
+    // Avoid multiple refresh calls simultaneously
+    if (isRefreshing) {
+        return refreshPromise!;
+    }
+
+    isRefreshing = true;
+    refreshPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            return response.ok;
+        } catch (error) {
+            console.error('Refresh token failed:', error);
+            return false;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+        }
+    })();
+
+    return refreshPromise;
 };
 
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const token = getAuthToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
 
-    if (token) {
-        (headers as any)['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
+        credentials: 'include', // Important: Send cookies
     });
 
     if (!response.ok) {
         if (response.status === 401) {
-            localStorage.removeItem('token');
+            // Try to refresh token
+            const refreshed = await tryRefreshToken();
+
+            if (refreshed) {
+                // Retry original request
+                const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers,
+                    credentials: 'include',
+                });
+
+                if (retryResponse.ok) {
+                    return retryResponse.json();
+                }
+            }
+
+            // Refresh failed -> logout
             if (window.location.pathname !== '/login') {
+                sessionStorage.removeItem('user');
                 window.location.href = '/login';
             }
         }
@@ -39,17 +78,31 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 // Auth API
 export const authApi = {
     login: async (phone: string, password: string) => {
-        return apiCall('/auth/login', {
+        const response = await apiCall('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ phone, password }),
         });
+
+        // Save user info to sessionStorage (temporary, cleared when tab closes)
+        if (response.user) {
+            sessionStorage.setItem('user', JSON.stringify(response.user));
+        }
+
+        return response;
     },
 
     register: async (data: { fullName: string; phone: string; email?: string; password: string; dateOfBirth?: string }) => {
-        return apiCall('/auth/register', {
+        const response = await apiCall('/auth/register', {
             method: 'POST',
             body: JSON.stringify(data),
         });
+
+        // Save user info to sessionStorage
+        if (response.user) {
+            sessionStorage.setItem('user', JSON.stringify(response.user));
+        }
+
+        return response;
     },
 
     changePassword: async (data: any) => {
@@ -64,6 +117,11 @@ export const authApi = {
             method: 'POST',
             body: JSON.stringify({ email }),
         });
+    },
+
+    logout: async () => {
+        await apiCall('/auth/logout', { method: 'POST' });
+        sessionStorage.removeItem('user');
     },
 };
 

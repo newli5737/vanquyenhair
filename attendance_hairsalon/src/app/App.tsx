@@ -23,11 +23,10 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+    // Check if user is already logged in from sessionStorage
+    const user = sessionStorage.getItem('user');
 
-    if (token && user) {
+    if (user) {
       const userData = JSON.parse(user);
       setIsLoggedIn(true);
       setIsAdmin(userData.role === 'ADMIN');
@@ -39,11 +38,17 @@ function App() {
     setIsAdmin(user.role === 'ADMIN');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const { authApi } = await import('./services/api');
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
     setIsLoggedIn(false);
     setIsAdmin(false);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
   };
 
   return (

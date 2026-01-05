@@ -38,6 +38,7 @@ model User {
   
   studentProfile StudentProfile?
   reviewedEnrollments ClassEnrollmentRequest[]
+  refreshTokens RefreshToken[]
   
   @@map("users")
 }
@@ -163,4 +164,18 @@ model ClassEnrollmentRequest {
   
   @@unique([studentId, trainingClassId])
   @@map("class_enrollment_requests")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }

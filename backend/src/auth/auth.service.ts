@@ -4,6 +4,8 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { MailerService } from '../common/mailer/mailer.service';
 import { LoginDto } from './dto/login.dto';
+import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +13,7 @@ export class AuthService {
         private prisma: PrismaService,
         private jwtService: JwtService,
         private mailerService: MailerService,
+        private configService: ConfigService,
     ) { }
 
     async login(loginDto: LoginDto) {
@@ -20,15 +23,11 @@ export class AuthService {
             throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
         }
 
-        const payload = {
-            sub: user.id,
-            phone: user.phone,
-            email: user.email,
-            role: user.role
-        };
+        const { accessToken, refreshToken } = await this.generateTokens(user);
 
         return {
-            access_token: this.jwtService.sign(payload),
+            accessToken,
+            refreshToken,
             user: {
                 id: user.id,
                 phone: user.phone,
@@ -36,6 +35,84 @@ export class AuthService {
                 role: user.role,
             },
         };
+    }
+
+    async generateTokens(user: any) {
+        const payload = {
+            sub: user.id,
+            phone: user.phone,
+            email: user.email,
+            role: user.role
+        };
+
+        // Access token (JWT, 30 minutes)
+        const accessToken = this.jwtService.sign(payload, {
+            expiresIn: this.configService.get('JWT_ACCESS_EXPIRATION') || '30m'
+        });
+
+        // Refresh token (random string, 7 days)
+        const refreshToken = randomBytes(64).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+        // Save refresh token to database
+        await this.prisma.refreshToken.create({
+            data: {
+                token: refreshToken,
+                userId: user.id,
+                expiresAt
+            }
+        });
+
+        return { accessToken, refreshToken };
+    }
+
+    async verifyRefreshToken(token: string) {
+        const refreshToken = await this.prisma.refreshToken.findUnique({
+            where: { token },
+            include: { user: true }
+        });
+
+        if (!refreshToken || refreshToken.isRevoked) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        if (new Date() > refreshToken.expiresAt) {
+            throw new UnauthorizedException('Refresh token expired');
+        }
+
+        return refreshToken.user;
+    }
+
+    async refreshAccessToken(refreshToken: string) {
+        const user = await this.verifyRefreshToken(refreshToken);
+
+        const payload = {
+            sub: user.id,
+            phone: user.phone,
+            email: user.email,
+            role: user.role
+        };
+
+        const accessToken = this.jwtService.sign(payload, {
+            expiresIn: this.configService.get('JWT_ACCESS_EXPIRATION') || '30m'
+        });
+
+        return { accessToken };
+    }
+
+    async logout(refreshToken: string) {
+        await this.prisma.refreshToken.updateMany({
+            where: { token: refreshToken },
+            data: { isRevoked: true }
+        });
+    }
+
+    async logoutAll(userId: string) {
+        await this.prisma.refreshToken.updateMany({
+            where: { userId },
+            data: { isRevoked: true }
+        });
     }
 
     async register(registerDto: any) {
@@ -100,7 +177,18 @@ export class AuthService {
             } as any // Cast as any because generated client is outdated
         });
 
-        return this.login({ phone: registerDto.phone, password: registerDto.password });
+        const { accessToken, refreshToken } = await this.generateTokens(user);
+
+        return {
+            accessToken,
+            refreshToken,
+            user: {
+                id: user.id,
+                phone: user.phone,
+                email: user.email,
+                role: user.role,
+            },
+        };
     }
 
     async validateUser(phone: string, password: string) {

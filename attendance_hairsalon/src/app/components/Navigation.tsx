@@ -62,7 +62,7 @@ export default function Navigation({ onLogout }: NavigationProps) {
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-6 h-16">
+        <div className="grid grid-cols-5 h-16">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -80,13 +80,6 @@ export default function Navigation({ onLogout }: NavigationProps) {
               <span className="text-[9px] font-medium truncate w-full text-center px-1">{item.label}</span>
             </Link>
           ))}
-          <button
-            onClick={onLogout}
-            className="flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-red-500 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="text-[9px] font-medium">Đăng xuất</span>
-          </button>
         </div>
       </nav>
     </>

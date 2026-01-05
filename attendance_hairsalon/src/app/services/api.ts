@@ -23,6 +23,12 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     });
 
     if (!response.ok) {
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
         const error = await response.json().catch(() => ({ message: 'An error occurred' }));
         throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }

@@ -7,7 +7,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import Navigation from "./Navigation";
 import { toast } from "sonner";
-import { User, Mail, Phone, IdCard, CheckCircle2, XCircle, Save, Camera, Upload, Loader2, ScanFace, Lock, ShieldCheck } from "lucide-react";
+import { User, Mail, Phone, IdCard, CheckCircle2, XCircle, Save, Camera, Upload, Loader2, ScanFace, Lock, ShieldCheck, LogOut } from "lucide-react";
 import { studentApi, faceVerificationApi, authApi } from "../services/api";
 import { uploadToCloudinary } from "../services/cloudinary";
 import { Skeleton } from "./ui/skeleton";
@@ -498,6 +498,18 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Logout Button */}
+        <div className="md:hidden">
+          <Button
+            variant="destructive"
+            className="w-full gap-2"
+            onClick={onLogout || (() => navigate("/login"))}
+          >
+            <LogOut className="w-4 h-4" />
+            Đăng xuất
+          </Button>
+        </div>
       </div>
 
       {/* Option Modal */}

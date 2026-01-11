@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,140 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String                   @id @default(uuid())
+  role                Role
+  email               String?                  @unique
+  passwordHash        String
+  createdAt           DateTime                 @default(now())
+  phone               String?                  @unique
+  reviewedEnrollments ClassEnrollmentRequest[]
+  refreshTokens       RefreshToken[]
+  studentProfile      StudentProfile?
+
+  @@map("users")
+}
+
+model StudentProfile {
+  id                   String                   @id @default(uuid())
+  userId               String                   @unique
+  studentCode          String                   @unique
+  fullName             String
+  avatarUrl            String?
+  faceRegistered       Boolean                  @default(false)
+  dateOfBirth          DateTime?
+  identityCard         String?
+  identityCardImage    String?
+  attendances          Attendance[]
+  enrollmentRequests   ClassEnrollmentRequest[]
+  sessionRegistrations SessionRegistration[]
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model TrainingClass {
+  id                 String                   @id @default(uuid())
+  code               String                   @unique
+  name               String
+  type               ClassType
+  location           ClassLocation
+  createdAt          DateTime                 @default(now())
+  year               String                   @default("2025")
+  latitude           Float?
+  longitude          Float?
+  enrollmentRequests ClassEnrollmentRequest[]
+  sessions           ClassSession[]
+
+  @@map("training_classes")
+}
+
+model ClassSession {
+  id                   String                @id @default(uuid())
+  date                 String
+  name                 String
+  startTime            String
+  endTime              String
+  registrationDeadline DateTime
+  createdAt            DateTime              @default(now())
+  isDeleted            Boolean               @default(false)
+  trainingClassId      String?
+  isAutoSelected       Boolean               @default(false)
+  attendances          Attendance[]
+  trainingClass        TrainingClass?        @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
+  sessionRegistrations SessionRegistration[]
+
+  @@map("class_sessions")
+}
+
+model SessionRegistration {
+  id           String         @id @default(uuid())
+  studentId    String
+  sessionId    String
+  registeredAt DateTime       @default(now())
+  session      ClassSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, sessionId])
+  @@map("session_registrations")
+}
+
+model Attendance {
+  id                String           @id @default(uuid())
+  studentId         String
+  sessionId         String
+  checkInTime       DateTime?
+  checkInLat        Float?
+  checkInLng        Float?
+  checkInFaceScore  Float?
+  checkOutTime      DateTime?
+  checkOutLat       Float?
+  checkOutLng       Float?
+  checkOutFaceScore Float?
+  status            AttendanceStatus @default(ABSENT)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  checkInImageUrl   String?
+  checkOutImageUrl  String?
+  locationNote      String?
+  session           ClassSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student           StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, sessionId])
+  @@map("attendances")
+}
+
+model ClassEnrollmentRequest {
+  id              String                @id @default(uuid())
+  studentId       String
+  trainingClassId String
+  status          ClassEnrollmentStatus @default(PENDING)
+  requestedAt     DateTime              @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+  reviewer        User?                 @relation(fields: [reviewedBy], references: [id])
+  student         StudentProfile        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  trainingClass   TrainingClass         @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, trainingClassId])
+  @@map("class_enrollment_requests")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }
 
 enum Role {
@@ -26,41 +157,6 @@ enum ClassEnrollmentStatus {
   REJECTED
 }
 
-model User {
-  id           String          @id @default(uuid())
-  role         Role
-  phone        String?         @unique
-  email        String?         @unique
-  passwordHash String
-  createdAt    DateTime        @default(now())
-  
-  studentProfile StudentProfile?
-  reviewedEnrollments ClassEnrollmentRequest[]
-  refreshTokens RefreshToken[]
-  
-  @@map("users")
-}
-
-model StudentProfile {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  studentCode    String   @unique
-  fullName       String
-  // phone field removed - using User.phone instead
-  avatarUrl      String?
-  faceRegistered Boolean  @default(false)
-  identityCard   String?
-  identityCardImage String?
-  dateOfBirth    DateTime?
-
-  user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionRegistrations SessionRegistration[]
-  attendances         Attendance[]
-  enrollmentRequests  ClassEnrollmentRequest[]
-  
-  @@map("student_profiles")
-}
-
 enum ClassType {
   NAIL
   HAIR
@@ -70,111 +166,4 @@ enum ClassType {
 enum ClassLocation {
   CAN_THO
   HO_CHI_MINH
-}
-
-model TrainingClass {
-  id        String        @id @default(uuid())
-  code      String        @unique // Auto-generated
-  name      String
-  type      ClassType
-  location  ClassLocation
-  latitude  Float?
-  longitude Float?
-  year      String        @default("2025") // e.g., "2025" or "2024-2025"
-  createdAt DateTime      @default(now())
-
-  sessions  ClassSession[]
-  enrollmentRequests ClassEnrollmentRequest[]
-
-  @@map("training_classes")
-}
-
-model ClassSession {
-  id                   String   @id @default(uuid())
-  trainingClassId      String?
-  date                 String   // Format: YYYY-MM-DD
-  name                 String   // Ca 1, Ca 2, Ca 3
-  startTime            String   // Format: HH:mm
-  endTime              String   // Format: HH:mm
-  registrationDeadline DateTime // startTime - 2 hours (kept for backward compatibility)
-  isAutoSelected       Boolean  @default(false) // Ca mặc định tự động chọn
-  isDeleted            Boolean  @default(false)
-  createdAt            DateTime @default(now())
-
-  trainingClass        TrainingClass? @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
-  sessionRegistrations SessionRegistration[]
-  attendances          Attendance[]
-
-  @@map("class_sessions")
-}
-
-model SessionRegistration {
-  id           String   @id @default(uuid())
-  studentId    String
-  sessionId    String
-  registeredAt DateTime @default(now())
-  
-  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  session ClassSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
-  @@unique([studentId, sessionId])
-  @@map("session_registrations")
-}
-
-model Attendance {
-  id                String            @id @default(uuid())
-  studentId         String
-  sessionId         String
-  checkInTime       DateTime?
-  checkInLat        Float?
-  checkInLng        Float?
-  checkInFaceScore  Float?
-  checkInImageUrl   String?
-  checkOutTime      DateTime?
-  checkOutLat       Float?
-  checkOutLng       Float?
-  checkOutFaceScore Float?
-  checkOutImageUrl  String?
-  status            AttendanceStatus  @default(ABSENT)
-  locationNote      String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
-  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  session ClassSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
-  @@unique([studentId, sessionId])
-  @@map("attendances")
-}
-
-model ClassEnrollmentRequest {
-  id              String                  @id @default(uuid())
-  studentId       String
-  trainingClassId String
-  status          ClassEnrollmentStatus   @default(PENDING)
-  requestedAt     DateTime                @default(now())
-  reviewedAt      DateTime?
-  reviewedBy      String?
-  rejectionReason String?
-  
-  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  trainingClass TrainingClass  @relation(fields: [trainingClassId], references: [id], onDelete: Cascade)
-  reviewer      User?          @relation(fields: [reviewedBy], references: [id])
-  
-  @@unique([studentId, trainingClassId])
-  @@map("class_enrollment_requests")
-}
-
-model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  isRevoked Boolean  @default(false) @map("is_revoked")
-
-  @@index([userId])
-  @@index([token])
-  @@map("refresh_tokens")
 }

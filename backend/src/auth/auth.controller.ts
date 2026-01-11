@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Request, UnauthorizedException, Res } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus, UseGuards, Request, UnauthorizedException, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
@@ -100,6 +100,13 @@ export class AuthController {
         res.clearCookie('refreshToken');
 
         return { message: 'Đăng xuất thành công' };
+    }
+
+    @Get('me')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getMe(@Request() req: any) {
+        return this.authService.getMe(req.user.userId);
     }
 
     @Post('change-password')

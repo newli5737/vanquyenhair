@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://trusted-offered-learning-fought.trycloudflare.com';
+const API_BASE_URL = 'https://punk-dance-features-exhibits.trycloudflare.com';
 
 // const API_BASE_URL = 'http://localhost:8004';
 
@@ -146,6 +146,10 @@ export const authApi = {
             method: 'POST',
             body: JSON.stringify({ email }),
         });
+    },
+
+    getMe: async () => {
+        return apiCall('/auth/me');
     },
 
     logout: async () => {

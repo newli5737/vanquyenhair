@@ -145,7 +145,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 <div>
                   <h3 className="text-2xl font-bold text-gray-800 mb-2">Sẵn sàng điểm danh?</h3>
                   <p className="text-gray-600 mb-6">
-                    Hệ thống sẽ tự động chọn ca học phù hợp cho bạn
+                    Hệ thống sẽ tự động chọn ca học phù hợp cho bạn trong lớp học đã chọn
                   </p>
                   {!profile?.faceRegistered ? (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
@@ -166,16 +166,35 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                         Đăng ký lớp học ngay
                       </Button>
                     </div>
-                  ) : null}
-                  <Button
-                    size="lg"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8 py-6 shadow-lg shadow-indigo-200"
-                    onClick={() => navigate("/check-in")}
-                    disabled={!profile?.faceRegistered || myClasses.length === 0}
-                  >
-                    <Camera className="w-5 h-5 mr-2" />
-                    Bắt đầu điểm danh
-                  </Button>
+                  ) : myClasses.length === 1 ? (
+                    <Button
+                      size="lg"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8 py-6 shadow-lg shadow-indigo-200"
+                      onClick={() => navigate("/check-in", { state: { classId: myClasses[0].id } })}
+                      disabled={!profile?.faceRegistered}
+                    >
+                      <Camera className="w-5 h-5 mr-2" />
+                      Bắt đầu điểm danh
+                    </Button>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                      {myClasses.map((cls) => (
+                        <Button
+                          key={cls.id}
+                          size="lg"
+                          className="bg-white hover:bg-indigo-50 text-indigo-700 border-2 border-indigo-200 hover:border-indigo-500 h-auto py-4 px-4 flex flex-col items-center gap-2 transition-all shadow-sm"
+                          onClick={() => navigate("/check-in", { state: { classId: cls.id } })}
+                          disabled={!profile?.faceRegistered}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Camera className="w-5 h-5" />
+                            <span className="font-bold text-lg">{cls.name}</span>
+                          </div>
+                          <span className="text-xs text-indigo-400 font-normal">Mã lớp: {cls.code}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -17,12 +17,15 @@ export class AuthService {
     ) { }
 
     async login(loginDto: LoginDto) {
+        console.log(`[AuthService] Login attempt for phone: ${loginDto.phone}`);
         const user = await this.validateUser(loginDto.phone, loginDto.password);
 
         if (!user) {
+            console.warn(`[AuthService] Login failed for phone: ${loginDto.phone} - Invalid credentials`);
             throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
         }
 
+        console.log(`[AuthService] Login success for user: ${user.id} (Role: ${user.role})`);
         const { accessToken, refreshToken } = await this.generateTokens(user);
 
         return {
@@ -138,6 +141,7 @@ export class AuthService {
 
         const hashedPassword = await this.hashPassword(registerDto.password);
 
+        console.log(`[AuthService] Creating user with phone: ${registerDto.phone}, role: STUDENT`);
         // Create User
         const user = await this.prisma.user.create({
             data: {
@@ -262,5 +266,23 @@ export class AuthService {
         await this.mailerService.sendNewPassword(email, fullName, newPassword);
 
         return { message: 'Mật khẩu mới đã được gửi vào email của bạn' };
+    }
+
+    async getMe(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                phone: true,
+                email: true,
+                role: true,
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('Người dùng không tồn tại');
+        }
+
+        return user;
     }
 }

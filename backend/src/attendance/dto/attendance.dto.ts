@@ -6,6 +6,10 @@ export class CheckInDto {
     sessionId?: string;
 
     @IsString()
+    @IsOptional()
+    trainingClassId?: string;
+
+    @IsString()
     @IsNotEmpty({ message: 'Ảnh khuôn mặt không được để trống' })
     imageBase64: string;
 

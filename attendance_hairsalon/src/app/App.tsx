@@ -27,8 +27,8 @@ function App() {
     // Check if user is already logged in by fetching profile
     const checkAuth = async () => {
       try {
-        const { studentApi } = await import('./services/api');
-        const userData = await studentApi.getProfile();
+        const { authApi } = await import('./services/api');
+        const userData = await authApi.getMe();
         setIsLoggedIn(true);
         setIsAdmin(userData.role === 'ADMIN');
         sessionStorage.setItem('user', JSON.stringify(userData));

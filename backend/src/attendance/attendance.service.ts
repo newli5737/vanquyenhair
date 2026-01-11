@@ -23,7 +23,7 @@ export class AttendanceService {
      * 3. Nếu có nhiều session → chọn session gần nhất với thời gian hiện tại
      * 4. Trả về sessionId hoặc throw error nếu không tìm thấy
      */
-    async findCurrentSession(studentId: string): Promise<string> {
+    async findCurrentSession(studentId: string, trainingClassId?: string): Promise<string> {
         const now = new Date();
         const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
         const currentTime = this.formatTime(now);
@@ -33,6 +33,7 @@ export class AttendanceService {
             where: {
                 studentId,
                 status: 'APPROVED',
+                ...(trainingClassId && { trainingClassId }),
             },
             select: {
                 trainingClassId: true,
@@ -40,7 +41,11 @@ export class AttendanceService {
         });
 
         if (enrollments.length === 0) {
-            throw new BadRequestException('Bạn chưa được duyệt vào lớp học nào');
+            throw new BadRequestException(
+                trainingClassId
+                    ? 'Bạn chưa được duyệt vào lớp học này'
+                    : 'Bạn chưa được duyệt vào lớp học nào'
+            );
         }
 
         const classIds = enrollments.map(e => e.trainingClassId);
@@ -164,7 +169,7 @@ export class AttendanceService {
         }
 
         // 1. Tự động tìm session phù hợp (nếu không có sessionId)
-        const sessionId = checkInDto.sessionId || await this.findCurrentSession(studentId);
+        const sessionId = checkInDto.sessionId || await this.findCurrentSession(studentId, checkInDto.trainingClassId);
 
         const session = await this.prisma.classSession.findUnique({
             where: { id: sessionId },

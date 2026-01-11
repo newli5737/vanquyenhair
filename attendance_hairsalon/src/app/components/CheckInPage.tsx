@@ -5,8 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Progress } from "./ui/progress";
 import Navigation from "./Navigation";
 import { toast } from "sonner";
-import { Camera, MapPin, CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { attendanceApi } from "../services/api";
+import { Camera, MapPin, CheckCircle2, XCircle, Loader2, GraduationCap, ChevronRight } from "lucide-react";
+import { attendanceApi, enrollmentApi } from "../services/api";
+import { useLocation } from "react-router-dom";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface CheckInPageProps {
   onLogout?: () => void;
@@ -15,8 +18,10 @@ interface CheckInPageProps {
 export default function CheckInPage({ onLogout }: CheckInPageProps) {
   const navigate = useNavigate();
 
-  // Simplified state - remove session/class selection
-  const [step, setStep] = useState(1); // Start from step 1 (camera)
+  const locState = useLocation();
+  const [selectedClassId, setSelectedClassId] = useState<string>(locState.state?.classId || "");
+  const [myClasses, setMyClasses] = useState<any[]>([]);
+  const [step, setStep] = useState(selectedClassId ? 1 : 0); // Step 0: Select Class, Step 1: Camera
   const [faceStatus, setFaceStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [gpsStatus, setGpsStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
@@ -25,6 +30,25 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedClassId) {
+      fetchMyClasses();
+    }
+  }, []);
+
+  const fetchMyClasses = async () => {
+    try {
+      const classes = await enrollmentApi.getMyClasses();
+      setMyClasses(classes);
+      if (classes.length === 1) {
+        setSelectedClassId(classes[0].id);
+        setStep(1);
+      }
+    } catch (error) {
+      toast.error("Không thể tải danh sách lớp học");
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -71,6 +95,11 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
       if (context) {
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
+
+        // Apply mirror effect to canvas
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageData);
@@ -135,11 +164,12 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
       return;
     }
 
-    // Không cần sessionId - backend tự tìm
+    // Không cần sessionId - backend tự tìm dựa trên trainingClassId
     const checkInData = {
       imageBase64: capturedImage,
       lat: location.lat,
-      lng: location.lng
+      lng: location.lng,
+      trainingClassId: selectedClassId
     };
 
     setCheckInLoading(true);
@@ -168,7 +198,9 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
     }
   };
 
-  const progressValue = (step / 3) * 100;
+  const totalSteps = selectedClassId ? 3 : 4;
+  const currentStepDisplay = selectedClassId ? step : step + 1;
+  const progressValue = (currentStepDisplay / totalSteps) * 100;
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -179,10 +211,56 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-semibold">Điểm danh</h2>
-            <span className="text-sm text-gray-600">Bước {step}/3</span>
+            <span className="text-sm text-gray-600">Bước {currentStepDisplay}/{totalSteps}</span>
           </div>
           <Progress value={progressValue} className="h-2" />
         </div>
+
+        {/* Step 0: Select Class (only if not selected) */}
+        {step === 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5" />
+                <CardTitle>Chọn lớp học</CardTitle>
+              </div>
+              <CardDescription>
+                Vui lòng chọn lớp học bạn muốn điểm danh hôm nay
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="class-select">Danh sách lớp học của bạn</Label>
+                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                  <SelectTrigger id="class-select" className="h-12">
+                    <SelectValue placeholder="Chọn lớp học..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {myClasses.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name} ({cls.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {myClasses.length === 0 && !checkInLoading && (
+                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm">
+                  ⚠️ Bạn chưa có lớp học nào được duyệt.
+                </div>
+              )}
+
+              <Button
+                className="w-full h-12"
+                disabled={!selectedClassId}
+                onClick={() => setStep(1)}
+              >
+                Tiếp tục <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Step 1: Face Recognition */}
         {step === 1 && (
@@ -205,7 +283,7 @@ export default function CheckInPage({ onLogout }: CheckInPageProps) {
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover scale-x-[-1]"
                     />
                     <canvas ref={canvasRef} className="hidden" />
                     {!cameraStream && (

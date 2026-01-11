@@ -142,6 +142,11 @@ export default function ProfilePage({ onLogout }: ProfilePageProps) {
       if (context) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+
+        // Apply mirror effect to canvas
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageData);

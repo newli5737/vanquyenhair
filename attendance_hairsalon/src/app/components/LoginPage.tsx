@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { toast } from "sonner";
-import { GraduationCap, ArrowRight, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { GraduationCap, ArrowRight, CheckCircle2, Loader2, Mail, AlertTriangle, ExternalLink } from "lucide-react";
 import { authApi } from "../services/api";
 import {
   Dialog,
@@ -26,7 +26,15 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [isZalo, setIsZalo] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("zalo")) {
+      setIsZalo(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,6 +263,34 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* Zalo Browser Warning Dialog */}
+      <Dialog open={isZalo} onOpenChange={setIsZalo}>
+        <DialogContent className="sm:max-w-md border-t-4 border-t-amber-500">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-amber-600 mb-2">
+              <AlertTriangle className="w-6 h-6" />
+              <DialogTitle className="text-xl">Phát hiện trình duyệt Zalo</DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-700 space-y-3">
+              <p>
+                Trình duyệt bên trong Zalo <strong>không hỗ trợ Camera</strong> tốt nhất, điều này sẽ khiến bạn không thể thực hiện điểm danh.
+              </p>
+              <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-amber-800 text-sm">
+                Vui lòng bấm vào <strong>dấu 3 chấm (...)</strong> ở góc trên bên phải và chọn <strong>"Mở bằng trình duyệt"</strong> (Safari hoặc Chrome) để tiếp tục.
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-4 flex flex-col gap-3">
+            <Button
+              variant="default"
+              className="w-full bg-amber-600 hover:bg-amber-700"
+              onClick={() => setIsZalo(false)}
+            >
+              Tôi đã hiểu
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

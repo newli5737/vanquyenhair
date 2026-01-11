@@ -424,14 +424,24 @@ export default function StudentManagement() {
                                                         <p className="text-xs text-indigo-600 font-semibold">{student.studentCode}</p>
                                                     </div>
                                                 </div>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleOpenDialog(student)}
-                                                    className="h-8 w-8 p-0 shrink-0"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleOpenDialog(student)}
+                                                        className="h-8 w-8 p-0 shrink-0 text-blue-600 border-blue-100"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleDelete(student.id)}
+                                                        className="h-8 w-8 p-0 shrink-0 text-red-600 border-red-100 hover:bg-red-50"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
 
                                             <div className="mt-4 space-y-2 text-sm border-t pt-3">

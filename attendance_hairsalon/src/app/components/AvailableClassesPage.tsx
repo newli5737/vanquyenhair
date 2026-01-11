@@ -74,22 +74,22 @@ const AvailableClassesPage = ({ onLogout }: { onLogout: () => void }) => {
         return enrollmentRequests.find(req => req.trainingClassId === classId);
     };
 
-    const hasPendingRequest = () => {
-        return enrollmentRequests.some(req => req.status === 'PENDING');
+    const hasPendingRequest = (classId: string) => {
+        return enrollmentRequests.some(req => req.trainingClassId === classId && req.status === 'PENDING');
     };
 
-    const hasApprovedRequest = () => {
-        return enrollmentRequests.some(req => req.status === 'APPROVED');
+    const hasApprovedRequest = (classId: string) => {
+        return enrollmentRequests.some(req => req.trainingClassId === classId && req.status === 'APPROVED');
     };
 
     const handleRegister = async (classId: string) => {
-        if (hasApprovedRequest()) {
-            toast.error('Bạn đã được duyệt vào lớp học rồi');
+        if (hasApprovedRequest(classId)) {
+            toast.error('Bạn đã được duyệt vào lớp học này rồi');
             return;
         }
 
-        if (hasPendingRequest()) {
-            toast.error('Bạn đã có yêu cầu đang chờ duyệt');
+        if (hasPendingRequest(classId)) {
+            toast.error('Bạn đã có yêu cầu đang chờ duyệt cho lớp này');
             return;
         }
 
@@ -130,7 +130,7 @@ const AvailableClassesPage = ({ onLogout }: { onLogout: () => void }) => {
                 <Button
                     className="w-full bg-indigo-600 hover:bg-indigo-700"
                     onClick={() => handleRegister(classId)}
-                    disabled={isLoading || hasPendingRequest() || hasApprovedRequest()}
+                    disabled={isLoading}
                 >
                     {isLoading ? 'Đang xử lý...' : 'Đăng ký ngay'}
                 </Button>
@@ -172,7 +172,7 @@ const AvailableClassesPage = ({ onLogout }: { onLogout: () => void }) => {
                         <Button
                             className="w-full bg-indigo-600 hover:bg-indigo-700"
                             onClick={() => handleRegister(classId)}
-                            disabled={isLoading || hasPendingRequest()}
+                            disabled={isLoading}
                         >
                             Đăng ký lại
                         </Button>

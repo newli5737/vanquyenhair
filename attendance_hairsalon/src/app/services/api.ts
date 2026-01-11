@@ -14,21 +14,15 @@ const tryRefreshToken = async (): Promise<boolean> => {
     isRefreshing = true;
     refreshPromise = (async () => {
         try {
-            const refreshToken = sessionStorage.getItem('refreshToken');
-            if (!refreshToken) return false;
-
             const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ refreshToken }),
+                credentials: 'include',
             });
 
             if (response.ok) {
-                const data = await response.json();
-                // Update access token
-                sessionStorage.setItem('accessToken', data.accessToken);
                 return true;
             }
 
@@ -46,21 +40,15 @@ const tryRefreshToken = async (): Promise<boolean> => {
 };
 
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const accessToken = sessionStorage.getItem('accessToken');
-
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...(options.headers as Record<string, string>),
     };
 
-    // Add Authorization header if token exists
-    if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
+        credentials: 'include',
     });
 
     if (!response.ok) {
@@ -69,19 +57,11 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
             const refreshed = await tryRefreshToken();
 
             if (refreshed) {
-                // Retry original request with new token
-                const newAccessToken = sessionStorage.getItem('accessToken');
-                const retryHeaders: Record<string, string> = {
-                    'Content-Type': 'application/json',
-                    ...(options.headers as Record<string, string>),
-                };
-                if (newAccessToken) {
-                    retryHeaders['Authorization'] = `Bearer ${newAccessToken}`;
-                }
-
+                // Retry original request
                 const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
                     ...options,
-                    headers: retryHeaders,
+                    headers,
+                    credentials: 'include',
                 });
 
                 if (retryResponse.ok) {
@@ -90,10 +70,8 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
             }
 
             // Refresh failed -> logout
-            if (window.location.pathname !== '/login') {
+            if (window.location.pathname !== '/login' && window.location.pathname !== '/admin/login') {
                 sessionStorage.removeItem('user');
-                sessionStorage.removeItem('accessToken');
-                sessionStorage.removeItem('refreshToken');
                 window.location.href = '/login';
             }
         }
@@ -113,6 +91,7 @@ export const authApi = {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ phone, password }),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -122,13 +101,7 @@ export const authApi = {
 
         const data = await response.json();
 
-        // Save tokens and user info to sessionStorage
-        if (data.accessToken) {
-            sessionStorage.setItem('accessToken', data.accessToken);
-        }
-        if (data.refreshToken) {
-            sessionStorage.setItem('refreshToken', data.refreshToken);
-        }
+        // Save user info to sessionStorage for immediate UI use
         if (data.user) {
             sessionStorage.setItem('user', JSON.stringify(data.user));
         }
@@ -143,6 +116,7 @@ export const authApi = {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -152,13 +126,7 @@ export const authApi = {
 
         const result = await response.json();
 
-        // Save tokens and user info to sessionStorage
-        if (result.accessToken) {
-            sessionStorage.setItem('accessToken', result.accessToken);
-        }
-        if (result.refreshToken) {
-            sessionStorage.setItem('refreshToken', result.refreshToken);
-        }
+        // Save user info to sessionStorage
         if (result.user) {
             sessionStorage.setItem('user', JSON.stringify(result.user));
         }
@@ -181,16 +149,10 @@ export const authApi = {
     },
 
     logout: async () => {
-        const refreshToken = sessionStorage.getItem('refreshToken');
-        if (refreshToken) {
-            await apiCall('/auth/logout', {
-                method: 'POST',
-                body: JSON.stringify({ refreshToken }),
-            });
-        }
+        await apiCall('/auth/logout', {
+            method: 'POST',
+        });
         sessionStorage.removeItem('user');
-        sessionStorage.removeItem('accessToken');
-        sessionStorage.removeItem('refreshToken');
     },
 };
 

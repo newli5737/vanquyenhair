@@ -1,4 +1,5 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Request, UnauthorizedException, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -13,38 +14,74 @@ export class AuthController {
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    async login(@Body() loginDto: LoginDto) {
+    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.login(loginDto);
-        // Return tokens in response body instead of cookies
+
+        // Set cookies
+        res.cookie('accessToken', result.accessToken, {
+            httpOnly: true,
+            secure: false, // Set to true in production with HTTPS
+            sameSite: 'lax',
+            maxAge: 30 * 60 * 1000 // 30 mins
+        });
+
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
         return {
             user: result.user,
-            accessToken: result.accessToken,
-            refreshToken: result.refreshToken
+            message: 'Đăng nhập thành công'
         };
     }
 
     @Post('register')
-    async register(@Body() registerDto: any) {
+    async register(@Body() registerDto: any, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.register(registerDto);
-        // Return tokens in response body instead of cookies
+
+        // Set cookies
+        res.cookie('accessToken', result.accessToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            maxAge: 30 * 60 * 1000
+        });
+
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
         return {
             user: result.user,
-            accessToken: result.accessToken,
-            refreshToken: result.refreshToken
+            message: 'Đăng ký thành công'
         };
     }
 
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
-    async refresh(@Body() body: { refreshToken: string }) {
-        if (!body.refreshToken) {
+    async refresh(@Request() req: any, @Res({ passthrough: true }) res: Response) {
+        const refreshToken = req.cookies['refreshToken'];
+
+        if (!refreshToken) {
             throw new UnauthorizedException('No refresh token');
         }
 
-        const { accessToken } = await this.authService.refreshAccessToken(body.refreshToken);
+        const { accessToken } = await this.authService.refreshAccessToken(refreshToken);
+
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            maxAge: 30 * 60 * 1000
+        });
 
         return {
-            accessToken,
             message: 'Token refreshed'
         };
     }
@@ -52,10 +89,15 @@ export class AuthController {
     @Post('logout')
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
-    async logout(@Body() body: { refreshToken: string }) {
-        if (body.refreshToken) {
-            await this.authService.logout(body.refreshToken);
+    async logout(@Request() req: any, @Res({ passthrough: true }) res: Response) {
+        const refreshToken = req.cookies['refreshToken'];
+        if (refreshToken) {
+            await this.authService.logout(refreshToken);
         }
+
+        // Clear cookies
+        res.clearCookie('accessToken');
+        res.clearCookie('refreshToken');
 
         return { message: 'Đăng xuất thành công' };
     }

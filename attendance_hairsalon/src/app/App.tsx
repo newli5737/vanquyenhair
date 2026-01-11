@@ -24,14 +24,23 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in from sessionStorage
-    const user = sessionStorage.getItem('user');
+    // Check if user is already logged in by fetching profile
+    const checkAuth = async () => {
+      try {
+        const { studentApi } = await import('./services/api');
+        const userData = await studentApi.getProfile();
+        setIsLoggedIn(true);
+        setIsAdmin(userData.role === 'ADMIN');
+        sessionStorage.setItem('user', JSON.stringify(userData));
+      } catch (error) {
+        // Not logged in or session expired
+        setIsLoggedIn(false);
+        setIsAdmin(false);
+        sessionStorage.removeItem('user');
+      }
+    };
 
-    if (user) {
-      const userData = JSON.parse(user);
-      setIsLoggedIn(true);
-      setIsAdmin(userData.role === 'ADMIN');
-    }
+    checkAuth();
   }, []);
 
   const handleLogin = (user: any) => {

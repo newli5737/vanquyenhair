@@ -62,11 +62,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       setLoading(true);
       const data = await authApi.login(phone, password);
 
-      // authApi already saves to sessionStorage
       toast.success("Đăng nhập thành công!");
-
-      // Fix for iOS Safari: wait a bit for cookie to be available
-      await new Promise(r => setTimeout(r, 300));
 
       onLogin(data.user);
 

@@ -14,79 +14,41 @@ export class AuthController {
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    async login(@Body() loginDto: LoginDto) {
         const result = await this.authService.login(loginDto);
-
-        // Set cookies with SameSite=None and Secure for cross-domain support (iOS/Safari)
-        res.cookie('accessToken', result.accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 30 * 60 * 1000 // 30 mins
-        });
-
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
 
         return {
             user: result.user,
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
             message: 'Đăng nhập thành công'
         };
     }
 
     @Post('register')
-    async register(@Body() registerDto: any, @Res({ passthrough: true }) res: Response) {
+    async register(@Body() registerDto: any) {
         const result = await this.authService.register(registerDto);
-
-        // Set cookies with SameSite=None and Secure for cross-domain support (iOS/Safari)
-        res.cookie('accessToken', result.accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 30 * 60 * 1000
-        });
-
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
 
         return {
             user: result.user,
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
             message: 'Đăng ký thành công'
         };
     }
 
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
-    async refresh(@Request() req: any, @Res({ passthrough: true }) res: Response) {
-        const refreshToken = req.cookies['refreshToken'];
-
+    async refresh(@Body('refreshToken') refreshToken: string) {
+        console.log(`[AuthController] Refresh attempt via body. Has token: ${!!refreshToken}`);
         if (!refreshToken) {
-            throw new UnauthorizedException('No refresh token');
+            throw new UnauthorizedException('No refresh token provided in request body');
         }
 
         const { accessToken } = await this.authService.refreshAccessToken(refreshToken);
 
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/',
-            maxAge: 30 * 60 * 1000
-        });
-
         return {
+            accessToken,
             message: 'Token refreshed'
         };
     }
@@ -94,25 +56,10 @@ export class AuthController {
     @Post('logout')
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
-    async logout(@Request() req: any, @Res({ passthrough: true }) res: Response) {
-        const refreshToken = req.cookies['refreshToken'];
+    async logout(@Body('refreshToken') refreshToken: string) {
         if (refreshToken) {
             await this.authService.logout(refreshToken);
         }
-
-        // Clear cookies
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/'
-        });
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            path: '/'
-        });
 
         return { message: 'Đăng xuất thành công' };
     }

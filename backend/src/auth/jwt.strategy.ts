@@ -8,11 +8,7 @@ import { Request } from 'express';
 export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(private configService: ConfigService) {
         super({
-            jwtFromRequest: ExtractJwt.fromExtractors([
-                (request: Request) => {
-                    return request?.cookies?.['accessToken'];
-                },
-            ]),
+            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
             secretOrKey: configService.get('JWT_SECRET') || 'default-secret-key',
         });

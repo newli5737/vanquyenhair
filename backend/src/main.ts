@@ -13,11 +13,12 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: (origin, callback) => {
-      // Allow all origins to support tunnel and multiple local ports
-      // In production with a fixed domain, you should specify it
-      callback(null, true);
-    },
+    origin: [
+      'https://intention-asus-losing-stewart.trycloudflare.com',
+      'https://missing-overall-cdt-preston.trycloudflare.com',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
     credentials: true,

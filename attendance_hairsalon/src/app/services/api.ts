@@ -1,15 +1,26 @@
 const API_BASE_URL = 'https://missing-overall-cdt-preston.trycloudflare.com';
 
-// const API_BASE_URL = 'http://localhost:8004';
+const getAccessToken = () => localStorage.getItem('accessToken');
+const getRefreshToken = () => localStorage.getItem('refreshToken');
+const setTokens = (accessToken: string, refreshToken: string) => {
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+};
+const clearTokens = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+};
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 const tryRefreshToken = async (): Promise<boolean> => {
-    // Avoid multiple refresh calls simultaneously
     if (isRefreshing) {
         return refreshPromise!;
     }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
 
     isRefreshing = true;
     refreshPromise = (async () => {
@@ -19,11 +30,15 @@ const tryRefreshToken = async (): Promise<boolean> => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
+                body: JSON.stringify({ refreshToken }),
             });
 
             if (response.ok) {
-                return true;
+                const data = await response.json();
+                if (data.accessToken) {
+                    localStorage.setItem('accessToken', data.accessToken);
+                    return true;
+                }
             }
 
             return false;
@@ -40,43 +55,42 @@ const tryRefreshToken = async (): Promise<boolean> => {
 };
 
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+    const accessToken = getAccessToken();
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         ...(options.headers as Record<string, string>),
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
-        credentials: 'include',
     });
 
     if (!response.ok) {
         if (response.status === 401) {
-            // Try to refresh token
             const refreshed = await tryRefreshToken();
 
             if (refreshed) {
-                // Fix for iOS Safari: wait a bit for cookie to be available in the browser's cookie jar
-                // Increased to 200ms to handle higher latency/slow devices
-                await new Promise(resolve => setTimeout(resolve, 200));
+                const newAccessToken = getAccessToken();
+                const retryHeaders = {
+                    ...headers,
+                    'Authorization': `Bearer ${newAccessToken}`,
+                };
 
-                // Retry original request
                 const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
                     ...options,
-                    headers,
-                    credentials: 'include',
+                    headers: retryHeaders,
                 });
 
                 if (retryResponse.ok) {
-                    const retryData = await retryResponse.json();
-                    return retryData;
+                    return retryResponse.json();
                 }
             }
 
-            // Refresh failed -> logout
             if (window.location.pathname !== '/login' && window.location.pathname !== '/admin/login') {
-                sessionStorage.removeItem('user');
+                localStorage.removeItem('user');
+                clearTokens();
                 window.location.href = '/login';
             }
         }
@@ -96,7 +110,6 @@ export const authApi = {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ phone, password }),
-            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -106,7 +119,10 @@ export const authApi = {
 
         const data = await response.json();
 
-        // Save user info to localStorage for persistent UI use
+        if (data.accessToken && data.refreshToken) {
+            setTokens(data.accessToken, data.refreshToken);
+        }
+
         if (data.user) {
             localStorage.setItem('user', JSON.stringify(data.user));
         }
@@ -121,7 +137,6 @@ export const authApi = {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
-            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -131,7 +146,10 @@ export const authApi = {
 
         const result = await response.json();
 
-        // Save user info to localStorage
+        if (result.accessToken && result.refreshToken) {
+            setTokens(result.accessToken, result.refreshToken);
+        }
+
         if (result.user) {
             localStorage.setItem('user', JSON.stringify(result.user));
         }
@@ -158,10 +176,13 @@ export const authApi = {
     },
 
     logout: async () => {
+        const refreshToken = getRefreshToken();
         await apiCall('/auth/logout', {
             method: 'POST',
+            body: JSON.stringify({ refreshToken }),
         });
         localStorage.removeItem('user');
+        clearTokens();
     },
 };
 

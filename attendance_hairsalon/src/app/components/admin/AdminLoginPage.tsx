@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
-import { Shield, LockKeyhole, ArrowRight } from "lucide-react";
+import { Shield, LockKeyhole, ArrowLeft } from "lucide-react";
 import { authApi } from "../../services/api";
 
 interface AdminLoginPageProps {
@@ -12,9 +12,9 @@ interface AdminLoginPageProps {
 }
 
 export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
-    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
-    const [errors, setErrors] = useState({ email: "", password: "" });
+    const [errors, setErrors] = useState({ phone: "", password: "" });
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -22,20 +22,20 @@ export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
         e.preventDefault();
 
         // Reset errors
-        setErrors({ email: "", password: "" });
+        setErrors({ phone: "", password: "" });
 
         // Validate
-        const newErrors = { email: "", password: "" };
+        const newErrors = { phone: "", password: "" };
 
-        if (!email) {
-            newErrors.email = "Vui lòng nhập email";
+        if (!phone) {
+            newErrors.phone = "Vui lòng nhập số điện thoại";
         }
 
         if (!password) {
             newErrors.password = "Vui lòng nhập mật khẩu";
         }
 
-        if (newErrors.email || newErrors.password) {
+        if (newErrors.phone || newErrors.password) {
             setErrors(newErrors);
             return;
         }
@@ -43,7 +43,7 @@ export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
         setLoading(true);
 
         try {
-            const response = await authApi.login(email, password);
+            const response = await authApi.login(phone, password);
 
             if (response.user.role !== 'ADMIN') {
                 toast.error("Bạn không có quyền truy cập trang quản trị");
@@ -70,7 +70,16 @@ export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
         <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
 
             {/* Left Side (Desktop) - Form */}
-            <div className="flex items-center justify-center p-6 md:p-12 bg-white">
+            <div className="flex items-center justify-center p-6 md:p-12 bg-white relative">
+                {/* Back to Student Login Button */}
+                <button
+                    onClick={() => navigate("/login")}
+                    className="absolute top-6 left-6 flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors group"
+                >
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                    <span className="text-sm font-medium">Trang học viên</span>
+                </button>
+
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center md:text-left">
                         <div className="md:hidden flex justify-center mb-6">
@@ -84,18 +93,18 @@ export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Admin Email</Label>
+                            <Label htmlFor="phone">Số điện thoại Admin</Label>
                             <Input
-                                id="email"
-                                type="email"
-                                placeholder="admin@system.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className={`h-11 border-slate-200 focus:border-slate-500 focus:ring-slate-500 ${errors.email ? "border-red-500" : ""}`}
+                                id="phone"
+                                type="tel"
+                                placeholder="09xxxxxxx"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                className={`h-11 border-slate-200 focus:border-slate-500 focus:ring-slate-500 ${errors.phone ? "border-red-500" : ""}`}
                                 disabled={loading}
                             />
-                            {errors.email && (
-                                <p className="text-sm text-red-500 font-medium">{errors.email}</p>
+                            {errors.phone && (
+                                <p className="text-sm text-red-500 font-medium">{errors.phone}</p>
                             )}
                         </div>
 

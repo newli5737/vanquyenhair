@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Trust ALL proxies to correctly identify protocol from Cloudflare
+  // Trust proxy (Cloudflare, reverse proxy)
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', true);
 
@@ -15,13 +15,15 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://vanquyenhair.vercel.app',
+
+      // trycloudflare domains (dev)
       'https://intention-asus-losing-stewart.trycloudflare.com',
       'https://missing-overall-cdt-preston.trycloudflare.com',
+
+      // local dev
       'http://localhost:5173',
-      'http://localhost:3000'
+      'http://localhost:3000',
     ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
     credentials: true,
   });
 
@@ -34,7 +36,8 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT || 8004;
-  await app.listen(port);
-  console.log(`Backend is running on port ${port}`);
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`Backend running on http://0.0.0.0:${port}`);
 }
 bootstrap();

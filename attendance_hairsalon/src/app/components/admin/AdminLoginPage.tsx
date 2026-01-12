@@ -53,6 +53,10 @@ export default function AdminLoginPage({ onLogin }: AdminLoginPageProps) {
 
             // authApi already saves to sessionStorage
             toast.success("Đăng nhập thành công!");
+
+            // Fix for iOS Safari: wait a bit for cookie to be available
+            await new Promise(r => setTimeout(r, 300));
+
             onLogin(response.user);
             navigate("/admin/dashboard");
         } catch (error: any) {

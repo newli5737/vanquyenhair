@@ -58,7 +58,8 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
             if (refreshed) {
                 // Fix for iOS Safari: wait a bit for cookie to be available in the browser's cookie jar
-                await new Promise(resolve => setTimeout(resolve, 50));
+                // Increased to 200ms to handle higher latency/slow devices
+                await new Promise(resolve => setTimeout(resolve, 200));
 
                 // Retry original request
                 const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {

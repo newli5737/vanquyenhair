@@ -46,9 +46,13 @@ const RegisterPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
             });
 
             // authApi already saves to sessionStorage
+            toast.success('Đăng ký thành công');
+
+            // Fix for iOS Safari: wait a bit for cookie to be available
+            await new Promise(r => setTimeout(r, 300));
+
             onLogin(data.user);
             navigate('/');
-            toast.success('Đăng ký thành công');
         } catch (error: any) {
             toast.error(error.message);
         } finally {

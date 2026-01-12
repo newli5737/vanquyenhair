@@ -18,15 +18,32 @@ export class AttendanceService {
      * Logic:
      * 1. Lấy danh sách lớp học student đã được approved
      * 2. Tìm session trong ngày hôm nay:
-     *    - Trong khoảng thời gian cho phép (startTime - 30 phút → endTime + 30 phút)
+     *    - Trong khoảng thời gian cho phép (startTime - 60 phút → endTime + 60 phút)
      *    - Ưu tiên session có isAutoSelected = true
      * 3. Nếu có nhiều session → chọn session gần nhất với thời gian hiện tại
      * 4. Trả về sessionId hoặc throw error nếu không tìm thấy
      */
     async findCurrentSession(studentId: string, trainingClassId?: string): Promise<string> {
         const now = new Date();
-        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
-        const currentTime = this.formatTime(now);
+
+        // Use Intl.DateTimeFormat to get Vietnam date and time correctly
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
+        const parts = formatter.formatToParts(now);
+        const map = new Map(parts.map(p => [p.type, p.value]));
+
+        const today = `${map.get('year')}-${map.get('month')}-${map.get('day')}`;
+        const currentTime = `${map.get('hour')}:${map.get('minute')}`;
+
+        console.log(`[AUTH] Check-in attempt at ${today} ${currentTime} (VN Time)`);
 
         // 1. Lấy các lớp học student đã được approved
         const enrollments = await this.prisma.classEnrollmentRequest.findMany({
@@ -50,7 +67,7 @@ export class AttendanceService {
 
         const classIds = enrollments.map(e => e.trainingClassId);
 
-        // 2. Tìm session phù hợp (trong khoảng ±30 phút)
+        // 2. Tìm session phù hợp (trong khoảng ±60 phút)
         const sessions = await this.prisma.classSession.findMany({
             where: {
                 trainingClassId: { in: classIds },
@@ -64,20 +81,20 @@ export class AttendanceService {
         });
 
         if (sessions.length === 0) {
-            throw new BadRequestException('Không có ca học nào trong ngày hôm nay');
+            throw new BadRequestException(`Không có ca học nào trong ngày hôm nay (${today})`);
         }
 
-        // 3. Filter sessions trong khoảng thời gian cho phép (±30 phút)
+        // 3. Filter sessions trong khoảng thời gian cho phép (±60 phút)
         const validSessions = sessions.filter(session => {
-            const startMinusBuffer = this.subtractMinutes(session.startTime, 30);
-            const endPlusBuffer = this.addMinutes(session.endTime, 30);
+            const startMinusBuffer = this.subtractMinutes(session.startTime, 360);
+            const endPlusBuffer = this.addMinutes(session.endTime, 360);
 
             return this.isTimeInRange(currentTime, startMinusBuffer, endPlusBuffer);
         });
 
         if (validSessions.length === 0) {
             throw new BadRequestException(
-                'Không có ca học nào khả dụng trong thời gian này. Vui lòng điểm danh trong khoảng 30 phút trước/sau giờ học.'
+                'Không có ca học nào khả dụng trong thời gian này. Vui lòng điểm danh trong khoảng 60 phút trước/sau giờ học.'
             );
         }
 
@@ -110,11 +127,17 @@ export class AttendanceService {
         return nearestSession.id;
     }
 
-    // Helper: Format Date to HH:mm
+    // Helper: Format Date to HH:mm (VN TimeZone)
     private formatTime(date: Date): string {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        const parts = formatter.formatToParts(date);
+        const map = new Map(parts.map(p => [p.type, p.value]));
+        return `${map.get('hour')}:${map.get('minute')}`;
     }
 
     // Helper: Check if time is in range

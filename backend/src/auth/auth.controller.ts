@@ -14,30 +14,24 @@ export class AuthController {
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    async login(@Body() loginDto: LoginDto, @Request() req, @Res({ passthrough: true }) res: Response) {
+    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.login(loginDto);
 
-        // Detect if we are on HTTPS (Cloudflare Tunnel)
-        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-
-        const cookieOptions: any = {
+        // Set cookies with SameSite=None and Secure for cross-domain support (iOS/Safari)
+        res.cookie('accessToken', result.accessToken, {
             httpOnly: true,
-            secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax', // 'none' is mandatory for cross-site cookies over HTTPS
+            secure: true,
+            sameSite: 'none',
             path: '/',
             maxAge: 30 * 60 * 1000 // 30 mins
-        };
+        });
 
-        // If it's HTTPS but not recognized as secure by Express, force it if we see the header
-        if (req.headers['x-forwarded-proto'] === 'https' || req.headers['host']?.includes('cloudflare')) {
-            cookieOptions.secure = true;
-            cookieOptions.sameSite = 'none';
-        }
-
-        res.cookie('accessToken', result.accessToken, cookieOptions);
         res.cookie('refreshToken', result.refreshToken, {
-            ...cookieOptions,
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days for persistent session
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
         return {
@@ -47,28 +41,24 @@ export class AuthController {
     }
 
     @Post('register')
-    async register(@Body() registerDto: any, @Request() req, @Res({ passthrough: true }) res: Response) {
+    async register(@Body() registerDto: any, @Res({ passthrough: true }) res: Response) {
         const result = await this.authService.register(registerDto);
 
-        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-
-        const cookieOptions: any = {
+        // Set cookies with SameSite=None and Secure for cross-domain support (iOS/Safari)
+        res.cookie('accessToken', result.accessToken, {
             httpOnly: true,
-            secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
+            secure: true,
+            sameSite: 'none',
             path: '/',
             maxAge: 30 * 60 * 1000
-        };
+        });
 
-        if (req.headers['x-forwarded-proto'] === 'https' || req.headers['host']?.includes('cloudflare')) {
-            cookieOptions.secure = true;
-            cookieOptions.sameSite = 'none';
-        }
-
-        res.cookie('accessToken', result.accessToken, cookieOptions);
         res.cookie('refreshToken', result.refreshToken, {
-            ...cookieOptions,
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
         return {
@@ -88,22 +78,13 @@ export class AuthController {
 
         const { accessToken } = await this.authService.refreshAccessToken(refreshToken);
 
-        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-
-        const cookieOptions: any = {
+        res.cookie('accessToken', accessToken, {
             httpOnly: true,
-            secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
+            secure: true,
+            sameSite: 'none',
             path: '/',
             maxAge: 30 * 60 * 1000
-        };
-
-        if (req.headers['x-forwarded-proto'] === 'https' || req.headers['host']?.includes('cloudflare')) {
-            cookieOptions.secure = true;
-            cookieOptions.sameSite = 'none';
-        }
-
-        res.cookie('accessToken', accessToken, cookieOptions);
+        });
 
         return {
             message: 'Token refreshed'
@@ -120,8 +101,18 @@ export class AuthController {
         }
 
         // Clear cookies
-        res.clearCookie('accessToken', { path: '/' });
-        res.clearCookie('refreshToken', { path: '/' });
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            path: '/'
+        });
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            path: '/'
+        });
 
         return { message: 'Đăng xuất thành công' };
     }

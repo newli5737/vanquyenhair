@@ -14,6 +14,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
+      'https://vanquyenhair.vercel.app',
       'https://intention-asus-losing-stewart.trycloudflare.com',
       'https://missing-overall-cdt-preston.trycloudflare.com',
       'http://localhost:5173',

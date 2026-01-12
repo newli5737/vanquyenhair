@@ -1,14 +1,35 @@
 const API_BASE_URL = 'https://missing-overall-cdt-preston.trycloudflare.com';
 
-const getAccessToken = () => localStorage.getItem('accessToken');
+const getAccessToken = () => {
+    const token = localStorage.getItem('accessToken');
+    const timestamp = localStorage.getItem('tokenTimestamp');
+
+    const isDevMode = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (isDevMode && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        const oneHour = 60 * 60 * 1000;
+
+        if (age > oneHour) {
+            console.warn('⚠️ Token older than 1 hour in dev mode, backend may have restarted. Clearing...');
+            clearTokens();
+            return null;
+        }
+    }
+
+    return token;
+};
 const getRefreshToken = () => localStorage.getItem('refreshToken');
 const setTokens = (accessToken: string, refreshToken: string) => {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('tokenTimestamp', Date.now().toString());
 };
 const clearTokens = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('tokenTimestamp');
 };
 
 let isRefreshing = false;
@@ -35,8 +56,9 @@ const tryRefreshToken = async (): Promise<boolean> => {
 
             if (response.ok) {
                 const data = await response.json();
-                if (data.accessToken) {
-                    localStorage.setItem('accessToken', data.accessToken);
+                if (data.accessToken && data.refreshToken) {
+                    // Always save both tokens with timestamp
+                    setTokens(data.accessToken, data.refreshToken);
                     return true;
                 }
             }
@@ -94,8 +116,12 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
                 window.location.href = '/login';
             }
         }
-        const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
+
+        // Only throw error if we actually got a response, otherwise it's a network error
+        const error = await response.json().catch(() => ({ message: 'Network error or system issue' }));
+        const apiError = new Error(error.message || `HTTP error! status: ${response.status}`);
+        (apiError as any).status = response.status;
+        throw apiError;
     }
 
     return response.json();

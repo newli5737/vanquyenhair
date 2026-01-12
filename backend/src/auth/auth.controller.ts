@@ -14,13 +14,20 @@ export class AuthController {
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    async login(@Body() loginDto: LoginDto) {
-        const result = await this.authService.login(loginDto);
+    async login(@Body() loginDto: LoginDto, @Request() req: any) {
+        // Extract device info for fingerprinting
+        const deviceInfo = {
+            userAgent: req.headers['user-agent'],
+            ip: req.ip,
+        };
+
+        const result = await this.authService.login(loginDto, deviceInfo);
 
         return {
             user: result.user,
             accessToken: result.accessToken,
             refreshToken: result.refreshToken,
+            expiresIn: result.expiresIn,
             message: 'Đăng nhập thành công'
         };
     }
@@ -45,10 +52,11 @@ export class AuthController {
             throw new UnauthorizedException('No refresh token provided in request body');
         }
 
-        const { accessToken } = await this.authService.refreshAccessToken(refreshToken);
+        const { accessToken, refreshToken: newRefreshToken } = await this.authService.refreshAccessToken(refreshToken);
 
         return {
             accessToken,
+            refreshToken: newRefreshToken,
             message: 'Token refreshed'
         };
     }

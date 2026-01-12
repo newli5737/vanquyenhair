@@ -34,11 +34,16 @@ function App() {
         setIsLoggedIn(true);
         setIsAdmin(userData.role === 'ADMIN');
         localStorage.setItem('user', JSON.stringify(userData));
-      } catch (error) {
-        // Not logged in or session expired
-        setIsLoggedIn(false);
-        setIsAdmin(false);
-        localStorage.removeItem('user');
+      } catch (error: any) {
+        // Only clear session if it's explicitly a 401 error
+        // If error.status is undefined, it might be a network error (Cloudflare tunnel down, etc)
+        if (error.status === 401) {
+          setIsLoggedIn(false);
+          setIsAdmin(false);
+          localStorage.removeItem('user');
+        } else {
+          console.error('Auth check failed due to non-401 error:', error);
+        }
       }
     };
 

@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { MailerService } from '../common/mailer/mailer.service';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes } from 'crypto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +16,7 @@ export class AuthService {
         private configService: ConfigService,
     ) { }
 
-    async login(loginDto: LoginDto) {
+    async login(loginDto: LoginDto, deviceInfo?: any) {
         console.log(`[AuthService] Login attempt for phone: ${loginDto.phone}`);
         const user = await this.validateUser(loginDto.phone, loginDto.password);
 
@@ -26,11 +26,12 @@ export class AuthService {
         }
 
         console.log(`[AuthService] Login success for user: ${user.id} (Role: ${user.role})`);
-        const { accessToken, refreshToken } = await this.generateTokens(user);
+        const { accessToken, refreshToken } = await this.generateTokens(user, deviceInfo);
 
         return {
             accessToken,
             refreshToken,
+            expiresIn: 90 * 24 * 60 * 60, // 90 days in seconds
             user: {
                 id: user.id,
                 phone: user.phone,
@@ -40,23 +41,31 @@ export class AuthService {
         };
     }
 
-    async generateTokens(user: any) {
+    async generateTokens(user: any, deviceInfo?: any) {
         const payload = {
             sub: user.id,
             phone: user.phone,
             email: user.email,
-            role: user.role
+            role: user.role,
+            deviceHash: deviceInfo ? this.hashDevice(deviceInfo) : undefined, // Optional device fingerprint
         };
 
-        // Access token (JWT, 30 minutes)
+        // Access token (JWT, 90 days)
         const accessToken = this.jwtService.sign(payload, {
-            expiresIn: this.configService.get('JWT_ACCESS_EXPIRATION') || '30m'
+            expiresIn: '90d'
         });
 
-        // Refresh token (random string, 7 days)
-        const refreshToken = randomBytes(64).toString('hex');
+        // Refresh token (JWT-based, 180 days)
+        const refreshToken = this.jwtService.sign(
+            { sub: user.id, type: 'refresh' },
+            {
+                secret: this.configService.get('JWT_REFRESH_SECRET'),
+                expiresIn: '180d',
+            }
+        );
+
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+        expiresAt.setDate(expiresAt.getDate() + 180); // 180 days
 
         // Save refresh token to database
         await this.prisma.refreshToken.create({
@@ -71,20 +80,34 @@ export class AuthService {
     }
 
     async verifyRefreshToken(token: string) {
-        const refreshToken = await this.prisma.refreshToken.findUnique({
-            where: { token },
-            include: { user: true }
-        });
+        // Verify JWT signature and expiration
+        try {
+            const payload = this.jwtService.verify(token, {
+                secret: this.configService.get('JWT_REFRESH_SECRET'),
+            });
 
-        if (!refreshToken || refreshToken.isRevoked) {
+            if (payload.type !== 'refresh') {
+                throw new UnauthorizedException('Invalid token type');
+            }
+
+            // Check if token exists in DB and not revoked
+            const refreshToken = await this.prisma.refreshToken.findUnique({
+                where: { token },
+                include: { user: true }
+            });
+
+            if (!refreshToken || refreshToken.isRevoked) {
+                throw new UnauthorizedException('Invalid refresh token');
+            }
+
+            if (new Date() > refreshToken.expiresAt) {
+                throw new UnauthorizedException('Refresh token expired');
+            }
+
+            return refreshToken.user;
+        } catch (error) {
             throw new UnauthorizedException('Invalid refresh token');
         }
-
-        if (new Date() > refreshToken.expiresAt) {
-            throw new UnauthorizedException('Refresh token expired');
-        }
-
-        return refreshToken.user;
     }
 
     async refreshAccessToken(refreshToken: string) {
@@ -97,11 +120,38 @@ export class AuthService {
             role: user.role
         };
 
+        // Generate new access token (90 days)
         const accessToken = this.jwtService.sign(payload, {
-            expiresIn: this.configService.get('JWT_ACCESS_EXPIRATION') || '30m'
+            expiresIn: '90d'
         });
 
-        return { accessToken };
+        // Generate new refresh token (180 days)
+        const newRefreshToken = this.jwtService.sign(
+            { sub: user.id, type: 'refresh' },
+            {
+                secret: this.configService.get('JWT_REFRESH_SECRET'),
+                expiresIn: '180d',
+            }
+        );
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 180);
+
+        // Revoke old refresh token and create new one
+        await this.prisma.refreshToken.updateMany({
+            where: { token: refreshToken },
+            data: { isRevoked: true }
+        });
+
+        await this.prisma.refreshToken.create({
+            data: {
+                token: newRefreshToken,
+                userId: user.id,
+                expiresAt
+            }
+        });
+
+        return { accessToken, refreshToken: newRefreshToken };
     }
 
     async logout(refreshToken: string) {
@@ -216,6 +266,13 @@ export class AuthService {
     async hashPassword(password: string): Promise<string> {
         const salt = await bcrypt.genSalt(10);
         return bcrypt.hash(password, salt);
+    }
+
+    private hashDevice(deviceInfo: any): string {
+        return crypto
+            .createHash('md5')
+            .update(JSON.stringify(deviceInfo))
+            .digest('hex');
     }
 
     async changePassword(userId: string, data: any) {

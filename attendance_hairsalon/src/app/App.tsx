@@ -22,7 +22,18 @@ import { Toaster } from "./components/ui/sonner";
 function App() {
   // Initialize state from localStorage to prevent flash of login page
   const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const [isLoggedIn, setIsLoggedIn] = useState(!!savedUser);
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  // DEBUG: Log ra console để kiểm tra
+  console.log('🔍 App.tsx - Checking localStorage:');
+  console.log('  savedUser:', savedUser);
+  console.log('  accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
+  console.log('  refreshToken:', refreshToken ? `${refreshToken.substring(0, 20)}...` : 'null');
+  console.log('  isLoggedIn will be:', !!savedUser && !!accessToken);
+
+  // CHỈ CẦN TOKEN, không cần user object (user object có thể load sau)
+  const [isLoggedIn, setIsLoggedIn] = useState(!!accessToken);
   const [isAdmin, setIsAdmin] = useState(savedUser?.role === 'ADMIN');
 
   // Bỏ việc verify token khi load app để tăng tốc độ và tránh logout không cần thiết

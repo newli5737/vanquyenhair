@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://api.vanquyenhair.name.vn';
+const API_BASE_URL = 'https://api.vanquyenhair.name.vn/api/v1';
 
 const getAccessToken = () => {
     const token = localStorage.getItem('accessToken');

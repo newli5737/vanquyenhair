@@ -36,6 +36,9 @@ async function bootstrap() {
     }),
   );
 
+  // Set global prefix for all routes
+  app.setGlobalPrefix('api/v1');
+
   const port = process.env.PORT || 8004;
   await app.listen(port, '0.0.0.0');
 

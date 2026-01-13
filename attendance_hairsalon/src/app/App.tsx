@@ -25,30 +25,28 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!savedUser);
   const [isAdmin, setIsAdmin] = useState(savedUser?.role === 'ADMIN');
 
-  useEffect(() => {
-    // Check if user is already logged in by fetching profile
-    const checkAuth = async () => {
-      try {
-        const { authApi } = await import('./services/api');
-        const userData = await authApi.getMe();
-        setIsLoggedIn(true);
-        setIsAdmin(userData.role === 'ADMIN');
-        localStorage.setItem('user', JSON.stringify(userData));
-      } catch (error: any) {
-        // Only clear session if it's explicitly a 401 error
-        // If error.status is undefined, it might be a network error (Cloudflare tunnel down, etc)
-        if (error.status === 401) {
-          setIsLoggedIn(false);
-          setIsAdmin(false);
-          localStorage.removeItem('user');
-        } else {
-          console.error('Auth check failed due to non-401 error:', error);
-        }
-      }
-    };
-
-    checkAuth();
-  }, []);
+  // Bỏ việc verify token khi load app để tăng tốc độ và tránh logout không cần thiết
+  // Token sẽ tự động được verify khi gọi API thực tế, nếu invalid sẽ tự động refresh hoặc logout
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     try {
+  //       const { authApi } = await import('./services/api');
+  //       const userData = await authApi.getMe();
+  //       setIsLoggedIn(true);
+  //       setIsAdmin(userData.role === 'ADMIN');
+  //       localStorage.setItem('user', JSON.stringify(userData));
+  //     } catch (error: any) {
+  //       if (error.status === 401) {
+  //         setIsLoggedIn(false);
+  //         setIsAdmin(false);
+  //         localStorage.removeItem('user');
+  //       } else {
+  //         console.error('Auth check failed due to non-401 error:', error);
+  //       }
+  //     }
+  //   };
+  //   checkAuth();
+  // }, []);
 
   const handleLogin = (user: any) => {
     setIsLoggedIn(true);

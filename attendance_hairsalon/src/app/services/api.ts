@@ -2,22 +2,8 @@ const API_BASE_URL = 'https://previously-runner-discovery-raymond.trycloudflare.
 
 const getAccessToken = () => {
     const token = localStorage.getItem('accessToken');
-    const timestamp = localStorage.getItem('tokenTimestamp');
-
-    const isDevMode = typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    if (isDevMode && timestamp) {
-        const age = Date.now() - parseInt(timestamp);
-        const oneHour = 60 * 60 * 1000;
-
-        if (age > oneHour) {
-            console.warn('⚠️ Token older than 1 hour in dev mode, backend may have restarted. Clearing...');
-            clearTokens();
-            return null;
-        }
-    }
-
+    // Bỏ dev mode check để token không bao giờ bị xóa tự động
+    // Nếu token thực sự invalid, API sẽ trả về 401 và tự động refresh
     return token;
 };
 const getRefreshToken = () => localStorage.getItem('refreshToken');

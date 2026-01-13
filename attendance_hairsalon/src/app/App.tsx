@@ -30,7 +30,8 @@ function App() {
   console.log('  savedUser:', savedUser);
   console.log('  accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
   console.log('  refreshToken:', refreshToken ? `${refreshToken.substring(0, 20)}...` : 'null');
-  console.log('  isLoggedIn will be:', !!savedUser && !!accessToken);
+  console.log('  isLoggedIn will be:', !!accessToken);
+  console.log('  isAdmin will be:', savedUser?.role === 'ADMIN');
 
   // CHỈ CẦN TOKEN, không cần user object (user object có thể load sau)
   const [isLoggedIn, setIsLoggedIn] = useState(!!accessToken);
@@ -85,13 +86,21 @@ function App() {
           <Route
             path="/login"
             element={
-              isLoggedIn && !isAdmin ? <Navigate to="/" /> : <LoginPage onLogin={handleLogin} />
+              isLoggedIn ? (
+                isAdmin ? <Navigate to="/admin/dashboard" /> : <Navigate to="/" />
+              ) : (
+                <LoginPage onLogin={handleLogin} />
+              )
             }
           />
           <Route
             path="/register"
             element={
-              isLoggedIn ? <Navigate to="/" /> : <RegisterPage onLogin={handleLogin} />
+              isLoggedIn ? (
+                isAdmin ? <Navigate to="/admin/dashboard" /> : <Navigate to="/" />
+              ) : (
+                <RegisterPage onLogin={handleLogin} />
+              )
             }
           />
           <Route

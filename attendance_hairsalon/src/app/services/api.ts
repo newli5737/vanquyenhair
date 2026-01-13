@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://previously-runner-discovery-raymond.trycloudflare.com';
+const API_BASE_URL = 'https://vanquyenhair.name.vn';
 
 const getAccessToken = () => {
     const token = localStorage.getItem('accessToken');

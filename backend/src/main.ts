@@ -15,6 +15,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://vanquyenhair.vercel.app',
+      'https://vanquyenhair.name.vn',
 
       // trycloudflare domains (dev)
       'https://intention-asus-losing-stewart.trycloudflare.com',

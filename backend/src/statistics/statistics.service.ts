@@ -368,6 +368,11 @@ export class StatisticsService {
                     studentCode: 'asc',
                 },
             },
+            select: {
+                student: true,
+                approvedAt: true,
+                createdAt: true,
+            },
         });
 
         // Get all attendances for these sessions
@@ -407,16 +412,52 @@ export class StatisticsService {
         });
 
         // Build matrix
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
         const matrix = enrolledStudents.map(enrollment => {
             const studentId = enrollment.student.id;
             const studentAttendances = attendanceMap.get(studentId) || new Map();
 
+            // Get enrollment date (when student was approved to join class)
+            const enrollmentDate = enrollment.approvedAt
+                ? new Date(enrollment.approvedAt).toISOString().split('T')[0]
+                : enrollment.createdAt
+                    ? new Date(enrollment.createdAt).toISOString().split('T')[0]
+                    : dates[0]; // Fallback to first date in range
+
             const dailyStatus = dates.map(date => {
                 const hasAttendance = studentAttendances.get(date);
-                return {
-                    date,
-                    status: hasAttendance === true ? 'PRESENT' : (hasAttendance === false ? 'ABSENT' : 'NO_SESSION'),
-                };
+
+                // Check if date is within student's enrollment period
+                const isBeforeEnrollment = date < enrollmentDate;
+                const isAfterToday = date > today;
+
+                // Logic:
+                // - If date is before enrollment or after today -> NO_SESSION (-)
+                // - If student checked in -> PRESENT (✓)
+                // - If student registered but didn't check in (between enrollment and today) -> ABSENT (✗)
+                // - If no attendance record exists and date is between enrollment and today -> ABSENT (✗)
+
+                if (isBeforeEnrollment || isAfterToday) {
+                    return {
+                        date,
+                        status: 'NO_SESSION',
+                    };
+                }
+
+                // Between enrollment date and today
+                if (hasAttendance === true) {
+                    return {
+                        date,
+                        status: 'PRESENT',
+                    };
+                } else {
+                    // Default to ABSENT for all dates between enrollment and today
+                    return {
+                        date,
+                        status: 'ABSENT',
+                    };
+                }
             });
 
             const presentCount = dailyStatus.filter(d => d.status === 'PRESENT').length;

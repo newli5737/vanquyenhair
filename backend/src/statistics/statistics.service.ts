@@ -309,4 +309,138 @@ export class StatisticsService {
             farCheckInRate: totalAttendances > 0 ? (farCheckInCount / totalAttendances) * 100 : 0,
         };
     }
+
+    /**
+     * Get attendance matrix: students x dates with attendance status
+     * Returns a table-like structure for easy visualization
+     */
+    async getAttendanceMatrix(startDate: string, endDate: string, classId: string) {
+        // Get all sessions in date range for the class
+        const sessions = await this.prisma.classSession.findMany({
+            where: {
+                trainingClassId: classId,
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+                isDeleted: false,
+            },
+            orderBy: {
+                date: 'asc',
+            },
+            select: {
+                id: true,
+                date: true,
+                name: true,
+            },
+        });
+
+        // Group sessions by date (multiple sessions per day)
+        const dateMap = new Map<string, string[]>();
+        sessions.forEach(session => {
+            if (!dateMap.has(session.date)) {
+                dateMap.set(session.date, []);
+            }
+            dateMap.get(session.date)!.push(session.id);
+        });
+
+        const dates = Array.from(dateMap.keys()).sort();
+        const sessionIdsByDate = Array.from(dateMap.values());
+
+        // Get all enrolled students in this class
+        const enrolledStudents = await this.prisma.classEnrollmentRequest.findMany({
+            where: {
+                trainingClassId: classId,
+                status: 'APPROVED',
+            },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        studentCode: true,
+                        fullName: true,
+                        avatarUrl: true,
+                    },
+                },
+            },
+            orderBy: {
+                student: {
+                    studentCode: 'asc',
+                },
+            },
+        });
+
+        // Get all attendances for these sessions
+        const sessionIds = sessions.map(s => s.id);
+        const attendances = await this.prisma.attendance.findMany({
+            where: {
+                sessionId: { in: sessionIds },
+            },
+            select: {
+                studentId: true,
+                sessionId: true,
+                checkInTime: true,
+                status: true,
+                session: {
+                    select: {
+                        date: true,
+                    },
+                },
+            },
+        });
+
+        // Build attendance map: studentId -> date -> has attendance
+        const attendanceMap = new Map<string, Map<string, boolean>>();
+        attendances.forEach(att => {
+            if (!attendanceMap.has(att.studentId)) {
+                attendanceMap.set(att.studentId, new Map());
+            }
+            const studentAttendances = attendanceMap.get(att.studentId)!;
+
+            // Student is present if they checked in for ANY session on that date
+            if (att.checkInTime) {
+                studentAttendances.set(att.session.date, true);
+            } else if (!studentAttendances.has(att.session.date)) {
+                // Only mark as absent if they haven't checked in any session that day
+                studentAttendances.set(att.session.date, false);
+            }
+        });
+
+        // Build matrix
+        const matrix = enrolledStudents.map(enrollment => {
+            const studentId = enrollment.student.id;
+            const studentAttendances = attendanceMap.get(studentId) || new Map();
+
+            const dailyStatus = dates.map(date => {
+                const hasAttendance = studentAttendances.get(date);
+                return {
+                    date,
+                    status: hasAttendance === true ? 'PRESENT' : (hasAttendance === false ? 'ABSENT' : 'NO_SESSION'),
+                };
+            });
+
+            const presentCount = dailyStatus.filter(d => d.status === 'PRESENT').length;
+            const absentCount = dailyStatus.filter(d => d.status === 'ABSENT').length;
+            const totalDays = dates.length;
+            const attendanceRate = totalDays > 0 ? (presentCount / totalDays) * 100 : 0;
+
+            return {
+                student: enrollment.student,
+                dailyStatus,
+                presentCount,
+                absentCount,
+                totalDays,
+                attendanceRate,
+            };
+        });
+
+        return {
+            startDate,
+            endDate,
+            dates,
+            students: matrix,
+            totalStudents: enrolledStudents.length,
+            totalDays: dates.length,
+        };
+    }
 }

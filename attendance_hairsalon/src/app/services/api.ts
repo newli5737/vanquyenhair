@@ -470,5 +470,14 @@ export const statisticsApi = {
 
         return apiCall(`/admin/statistics/far-checkins?${params.toString()}`);
     },
+
+    getAttendanceMatrix: async (startDate: string, endDate: string, classId: string) => {
+        const params = new URLSearchParams();
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+        params.append('classId', classId);
+
+        return apiCall(`/admin/statistics/attendance-matrix?${params.toString()}`);
+    },
 };
 

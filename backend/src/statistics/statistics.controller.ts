@@ -37,4 +37,13 @@ export class StatisticsController {
     ) {
         return this.statisticsService.getFarCheckInStats(startDate, endDate, classId);
     }
+
+    @Get('attendance-matrix')
+    async getAttendanceMatrix(
+        @Query('startDate') startDate: string,
+        @Query('endDate') endDate: string,
+        @Query('classId') classId: string,
+    ) {
+        return this.statisticsService.getAttendanceMatrix(startDate, endDate, classId);
+    }
 }

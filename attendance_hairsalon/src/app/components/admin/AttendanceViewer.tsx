@@ -45,13 +45,13 @@ export default function AttendanceViewer() {
             loadSessions();
         } else {
             setSessions([]);
-            setSelectedSession("");
+            setSelectedSession("all");
         }
     }, [selectedDate, selectedClassId]);
 
     useEffect(() => {
         loadAttendances();
-    }, [selectedDate, selectedSession]);
+    }, [selectedDate, selectedSession, selectedClassId]);
 
     const fetchClasses = async () => {
         try {
@@ -70,20 +70,20 @@ export default function AttendanceViewer() {
         try {
             const data = await sessionApi.getByDate(selectedDate, selectedClassId);
             setSessions(data);
-            if (data.length > 0) {
-                setSelectedSession(data[0].id);
-            } else {
-                setSelectedSession("");
-            }
+            // Default to "all" to show all sessions
+            setSelectedSession("all");
         } catch (error: any) {
             toast.error(error.message || "Không thể tải danh sách ca học");
         }
     };
 
     const loadAttendances = async () => {
+        if (!selectedClassId) return;
         try {
             setLoading(true);
-            const data = await attendanceApi.getRecords(selectedDate, selectedSession, selectedClassId);
+            // If "all" is selected, pass undefined to get all sessions
+            const sessionId = selectedSession === "all" ? undefined : selectedSession;
+            const data = await attendanceApi.getRecords(selectedDate, sessionId, selectedClassId);
             setAttendances(data);
         } catch (error: any) {
             toast.error(error.message || "Không thể tải dữ liệu điểm danh");
@@ -208,6 +208,9 @@ export default function AttendanceViewer() {
                                         <SelectValue placeholder="Chọn ca học" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="all">
+                                            Tất cả các ca ({sessions.length} ca)
+                                        </SelectItem>
                                         {sessions.map((session) => (
                                             <SelectItem key={session.id} value={session.id}>
                                                 {session.name} ({session.startTime} - {session.endTime})
@@ -240,6 +243,7 @@ export default function AttendanceViewer() {
                                         <TableRow>
                                             <TableHead>Mã HV</TableHead>
                                             <TableHead>Họ tên</TableHead>
+                                            {selectedSession === "all" && <TableHead className="text-center">Ca học</TableHead>}
                                             <TableHead className="text-center">Vào</TableHead>
                                             <TableHead className="text-center">Face Score</TableHead>
                                             <TableHead className="text-center">Ra</TableHead>
@@ -257,6 +261,15 @@ export default function AttendanceViewer() {
                                                     <div className="text-xs text-muted-foreground">{attendance.student.fullName}</div>
                                                 </TableCell>
                                                 <TableCell className="hidden md:table-cell">{attendance.student.fullName}</TableCell>
+
+                                                {/* Session Name (only show when "all" is selected) */}
+                                                {selectedSession === "all" && (
+                                                    <TableCell className="text-center">
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {attendance.session?.name || "N/A"}
+                                                        </Badge>
+                                                    </TableCell>
+                                                )}
 
                                                 {/* Check-in Column */}
                                                 <TableCell>

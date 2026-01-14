@@ -431,26 +431,33 @@ export class StatisticsService {
                 const isAfterToday = date > today;
 
                 // Logic:
-                // - If date is before enrollment or after today -> NO_SESSION (-)
+                // - If date is before enrollment -> NO_SESSION (-)
+                // - If date is after today (future) -> NO_SESSION (-)
                 // - If student checked in -> PRESENT (✓)
-                // - If student registered but didn't check in (between enrollment and today) -> ABSENT (✗)
-                // - If no attendance record exists and date is between enrollment and today -> ABSENT (✗)
+                // - If date <= today and no check-in -> ABSENT (✗)
 
-                if (isBeforeEnrollment || isAfterToday) {
+                if (isBeforeEnrollment) {
                     return {
                         date,
                         status: 'NO_SESSION',
                     };
                 }
 
-                // Between enrollment date and today
+                if (isAfterToday) {
+                    return {
+                        date,
+                        status: 'NO_SESSION',
+                    };
+                }
+
+                // Date is between enrollment and today (inclusive)
                 if (hasAttendance === true) {
                     return {
                         date,
                         status: 'PRESENT',
                     };
                 } else {
-                    // Default to ABSENT for all dates between enrollment and today
+                    // Default to ABSENT for all past/present dates since enrollment
                     return {
                         date,
                         status: 'ABSENT',

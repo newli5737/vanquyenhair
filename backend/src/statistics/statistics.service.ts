@@ -353,7 +353,7 @@ export class StatisticsService {
                 trainingClassId: classId,
                 status: 'APPROVED',
             },
-            include: {
+            select: {
                 student: {
                     select: {
                         id: true,
@@ -362,16 +362,13 @@ export class StatisticsService {
                         avatarUrl: true,
                     },
                 },
+                reviewedAt: true, // This is the approval date
+                requestedAt: true, // Fallback date
             },
             orderBy: {
                 student: {
                     studentCode: 'asc',
                 },
-            },
-            select: {
-                student: true,
-                approvedAt: true,
-                createdAt: true,
             },
         });
 
@@ -419,10 +416,11 @@ export class StatisticsService {
             const studentAttendances = attendanceMap.get(studentId) || new Map();
 
             // Get enrollment date (when student was approved to join class)
-            const enrollmentDate = enrollment.approvedAt
-                ? new Date(enrollment.approvedAt).toISOString().split('T')[0]
-                : enrollment.createdAt
-                    ? new Date(enrollment.createdAt).toISOString().split('T')[0]
+            // Use reviewedAt (approval date) or requestedAt as fallback
+            const enrollmentDate = enrollment.reviewedAt
+                ? new Date(enrollment.reviewedAt).toISOString().split('T')[0]
+                : enrollment.requestedAt
+                    ? new Date(enrollment.requestedAt).toISOString().split('T')[0]
                     : dates[0]; // Fallback to first date in range
 
             const dailyStatus = dates.map(date => {

@@ -10,9 +10,7 @@ export class TrainingClassService {
             include: {
                 _count: {
                     select: {
-                        enrollmentRequests: {
-                            where: { status: 'PENDING' }
-                        }
+                        enrollmentRequests: true
                     }
                 }
             },
@@ -21,10 +19,30 @@ export class TrainingClassService {
             }
         });
 
-        return classes.map(cls => ({
-            ...cls,
-            pendingCount: cls._count.enrollmentRequests
+        // Get approved count for each class
+        const classesWithCounts = await Promise.all(classes.map(async (cls) => {
+            const pendingCount = await this.prisma.classEnrollmentRequest.count({
+                where: {
+                    trainingClassId: cls.id,
+                    status: 'PENDING'
+                }
+            });
+
+            const approvedCount = await this.prisma.classEnrollmentRequest.count({
+                where: {
+                    trainingClassId: cls.id,
+                    status: 'APPROVED'
+                }
+            });
+
+            return {
+                ...cls,
+                pendingCount,
+                studentCount: approvedCount
+            };
         }));
+
+        return classesWithCounts;
     }
 
     async getAvailableClasses() {

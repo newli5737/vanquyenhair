@@ -175,7 +175,14 @@ export default function StudentManagement() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Quản lý học viên</h2>
-                    <p className="text-muted-foreground">Danh sách và thống kê học viên</p>
+                    <p className="text-muted-foreground">
+                        Danh sách và thống kê học viên
+                        {!loading && (
+                            <span className="ml-2 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                Tổng số học viên: {students.length}
+                            </span>
+                        )}
+                    </p>
                 </div>
             </div>
 

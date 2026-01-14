@@ -39,6 +39,7 @@ interface TrainingClass {
     year: string;
     createdAt: string;
     pendingCount?: number;
+    studentCount?: number;
 }
 
 export default function ClassManagement() {
@@ -199,13 +200,14 @@ export default function ClassManagement() {
                                         <TableHead>Năm</TableHead>
                                         <TableHead>Loại</TableHead>
                                         <TableHead>Địa điểm</TableHead>
+                                        <TableHead>Tổng số học viên</TableHead>
                                         <TableHead className="text-right">Hành động</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredClasses.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                                                 Không tìm thấy lớp học nào.
                                             </TableCell>
                                         </TableRow>
@@ -226,6 +228,11 @@ export default function ClassManagement() {
                                                 <TableCell>
                                                     <span className="flex items-center gap-1 text-sm text-gray-600">
                                                         {cls.location === 'CAN_THO' ? 'Cần Thơ' : 'Hồ Chí Minh'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        {cls.studentCount || 0} học viên
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="text-right">
@@ -308,7 +315,13 @@ export default function ClassManagement() {
                                                     <p className="text-gray-500 text-[10px] uppercase font-semibold">Năm</p>
                                                     <p className="font-medium text-gray-700">{cls.year}</p>
                                                 </div>
-                                                <div className="flex justify-end items-end">
+                                                <div className="space-y-1">
+                                                    <p className="text-gray-500 text-[10px] uppercase font-semibold">Học viên</p>
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                                                        {cls.studentCount || 0} học viên
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-end items-end col-span-2">
                                                     <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(cls.id)} className="h-8 w-8 text-red-500">
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>

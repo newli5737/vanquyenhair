@@ -285,7 +285,7 @@ export default function Statistics() {
         <>
           {/* Overview Cards */}
           {overview && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <Card className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
@@ -295,6 +295,20 @@ export default function Statistics() {
                     </div>
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                       <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-indigo-500 shadow-md hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Tổng số học viên</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{attendanceMatrix?.totalStudents || 0}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <Users className="w-6 h-6 text-indigo-600" />
                     </div>
                   </div>
                 </CardContent>

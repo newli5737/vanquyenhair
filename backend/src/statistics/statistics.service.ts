@@ -134,6 +134,108 @@ export class StatisticsService {
     }
 
     /**
+     * Get detailed far check-in records with dates
+     */
+    async getFarCheckInDetails(startDate: string, endDate: string, classId: string) {
+        const farCheckIns = await this.prisma.attendance.findMany({
+            where: {
+                checkInTime: { not: null },
+                session: {
+                    trainingClassId: classId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                    isDeleted: false,
+                },
+            },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        studentCode: true,
+                        fullName: true,
+                        avatarUrl: true,
+                    },
+                },
+                session: {
+                    select: {
+                        date: true,
+                        name: true,
+                    },
+                },
+            },
+            orderBy: {
+                checkInTime: 'desc',
+            },
+        });
+
+        // Group by student and calculate distance issues
+        const studentStats = new Map<string, any>();
+
+        farCheckIns.forEach(attendance => {
+            const studentId = attendance.student.id;
+
+            if (!studentStats.has(studentId)) {
+                studentStats.set(studentId, {
+                    student: attendance.student,
+                    farCheckIns: [],
+                    noGpsCheckIns: [],
+                    totalFarCheckIns: 0,
+                    totalNoGpsCheckIns: 0,
+                });
+            }
+
+            const stat = studentStats.get(studentId);
+
+            // Check for missing GPS (lat/lng = 0 or null)
+            const hasNoGps = !attendance.checkInLat || !attendance.checkInLng ||
+                           attendance.checkInLat === 0 || attendance.checkInLng === 0;
+
+            if (hasNoGps) {
+                stat.noGpsCheckIns.push({
+                    date: attendance.session.date,
+                    sessionName: attendance.session.name,
+                    checkInTime: attendance.checkInTime,
+                    reason: 'Không có tọa độ GPS',
+                });
+                stat.totalNoGpsCheckIns++;
+            } else if (attendance.locationNote?.includes('xa lớp học')) {
+                // Extract distance from locationNote
+                const distanceMatch = attendance.locationNote.match(/\((\d+)m\)/);
+                const distance = distanceMatch ? parseInt(distanceMatch[1]) : 0;
+
+                stat.farCheckIns.push({
+                    date: attendance.session.date,
+                    sessionName: attendance.session.name,
+                    checkInTime: attendance.checkInTime,
+                    locationNote: attendance.locationNote,
+                    distance,
+                    lat: attendance.checkInLat,
+                    lng: attendance.checkInLng,
+                });
+                stat.totalFarCheckIns++;
+            }
+        });
+
+        // Convert to array and sort by total issues
+        const results = Array.from(studentStats.values())
+            .filter(stat => stat.totalFarCheckIns > 0 || stat.totalNoGpsCheckIns > 0)
+            .sort((a, b) => {
+                const totalA = a.totalFarCheckIns + a.totalNoGpsCheckIns;
+                const totalB = b.totalFarCheckIns + b.totalNoGpsCheckIns;
+                return totalB - totalA;
+            });
+
+        return {
+            startDate,
+            endDate,
+            students: results,
+            totalStudentsWithIssues: results.length,
+        };
+    }
+
+    /**
      * Thống kê học viên check-in xa lớp (dựa vào locationNote)
      */
     async getFarCheckInStats(startDate: string, endDate: string, classId?: string) {

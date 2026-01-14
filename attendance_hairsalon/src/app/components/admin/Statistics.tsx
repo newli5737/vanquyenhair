@@ -20,6 +20,8 @@ import {
   Users,
   AlertTriangle,
   Table as TableIcon,
+  Navigation,
+  MapPinOff,
 } from "lucide-react";
 import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -62,6 +64,37 @@ interface AttendanceMatrix {
   totalDays: number;
 }
 
+interface FarCheckInDetails {
+  startDate: string;
+  endDate: string;
+  students: {
+    student: {
+      id: string;
+      studentCode: string;
+      fullName: string;
+      avatarUrl?: string;
+    };
+    farCheckIns: {
+      date: string;
+      sessionName: string;
+      checkInTime: string;
+      locationNote: string;
+      distance: number;
+      lat: number;
+      lng: number;
+    }[];
+    noGpsCheckIns: {
+      date: string;
+      sessionName: string;
+      checkInTime: string;
+      reason: string;
+    }[];
+    totalFarCheckIns: number;
+    totalNoGpsCheckIns: number;
+  }[];
+  totalStudentsWithIssues: number;
+}
+
 export default function Statistics() {
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<any[]>([]);
@@ -74,6 +107,7 @@ export default function Statistics() {
   // Stats data
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [attendanceMatrix, setAttendanceMatrix] = useState<AttendanceMatrix | null>(null);
+  const [farCheckInDetails, setFarCheckInDetails] = useState<FarCheckInDetails | null>(null);
 
   useEffect(() => {
     fetchClasses();
@@ -105,13 +139,15 @@ export default function Statistics() {
     try {
       setLoading(true);
 
-      const [overviewData, matrixData] = await Promise.all([
+      const [overviewData, matrixData, farDetailsData] = await Promise.all([
         statisticsApi.getOverview(startDate, endDate, selectedClassId),
         statisticsApi.getAttendanceMatrix(startDate, endDate, selectedClassId),
+        statisticsApi.getFarCheckInDetails(startDate, endDate, selectedClassId),
       ]);
 
       setOverview(overviewData);
       setAttendanceMatrix(matrixData);
+      setFarCheckInDetails(farDetailsData);
     } catch (error) {
       console.error(error);
       toast.error("Không thể tải thống kê");
@@ -422,6 +458,131 @@ export default function Statistics() {
                     </table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Far Check-in Details */}
+          {farCheckInDetails && farCheckInDetails.students.length > 0 && (
+            <Card className="shadow-md">
+              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
+                <CardTitle className="flex items-center gap-2 text-amber-900">
+                  <Navigation className="w-5 h-5" />
+                  Chi tiết Check-in Xa & Không có GPS ({farCheckInDetails.totalStudentsWithIssues} học viên)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {farCheckInDetails.students.map((student) => (
+                    <Card key={student.student.id} className="border-2 hover:border-amber-300 transition-colors">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            {student.student.avatarUrl ? (
+                              <img
+                                src={student.student.avatarUrl}
+                                alt={student.student.fullName}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <Users className="w-6 h-6 text-amber-600" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-900">{student.student.fullName}</h4>
+                            <p className="text-sm text-gray-600">{student.student.studentCode}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            {student.totalFarCheckIns > 0 && (
+                              <Badge className="bg-amber-500">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {student.totalFarCheckIns} lần xa
+                              </Badge>
+                            )}
+                            {student.totalNoGpsCheckIns > 0 && (
+                              <Badge variant="destructive">
+                                <MapPinOff className="w-3 h-3 mr-1" />
+                                {student.totalNoGpsCheckIns} lần không GPS
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {/* Far Check-ins */}
+                          {student.farCheckIns.length > 0 && (
+                            <div>
+                              <h5 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                Check-in xa lớp học:
+                              </h5>
+                              <div className="space-y-2">
+                                {student.farCheckIns.map((checkIn, idx) => (
+                                  <div key={idx} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs">
+                                          {format(new Date(checkIn.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })}
+                                        </Badge>
+                                        <span className="text-sm font-medium">{checkIn.sessionName}</span>
+                                      </div>
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        {new Date(checkIn.checkInTime).toLocaleTimeString("vi-VN")}
+                                      </p>
+                                      <Badge className="mt-1 bg-amber-600 text-xs">
+                                        {checkIn.distance}m
+                                      </Badge>
+                                    </div>
+                                    <a
+                                      href={`https://www.google.com/maps?q=${checkIn.lat},${checkIn.lng}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                                    >
+                                      <MapPin className="w-5 h-5" />
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* No GPS Check-ins */}
+                          {student.noGpsCheckIns.length > 0 && (
+                            <div>
+                              <h5 className="font-semibold text-red-900 mb-2 flex items-center gap-2">
+                                <MapPinOff className="w-4 h-4" />
+                                Check-in không có GPS:
+                              </h5>
+                              <div className="space-y-2">
+                                {student.noGpsCheckIns.map((checkIn, idx) => (
+                                  <div key={idx} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs">
+                                          {format(new Date(checkIn.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })}
+                                        </Badge>
+                                        <span className="text-sm font-medium">{checkIn.sessionName}</span>
+                                      </div>
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        {new Date(checkIn.checkInTime).toLocaleTimeString("vi-VN")}
+                                      </p>
+                                      <Badge variant="destructive" className="mt-1 text-xs">
+                                        {checkIn.reason}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}

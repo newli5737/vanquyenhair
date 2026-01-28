@@ -15,8 +15,19 @@ export class StudentService {
     ) { }
 
     async createStudent(createStudentDto: CreateStudentDto) {
-        // Check if email or studentCode already exists
-        if (createStudentDto.email) {
+        // Check if phone already exists (required field)
+        if (createStudentDto.phone) {
+            const existingPhone = await this.prisma.user.findUnique({
+                where: { phone: createStudentDto.phone },
+            });
+
+            if (existingPhone) {
+                throw new ConflictException('Số điện thoại đã tồn tại');
+            }
+        }
+
+        // Check if email already exists (optional field - only check if provided and not empty)
+        if (createStudentDto.email && createStudentDto.email.trim() !== '') {
             const existingUser = await this.prisma.user.findUnique({
                 where: { email: createStudentDto.email },
             });

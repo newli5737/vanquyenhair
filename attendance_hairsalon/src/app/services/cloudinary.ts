@@ -1,4 +1,3 @@
-// Cloudinary upload utility for frontend
 const CLOUDINARY_CLOUD_NAME = 'dcdondszq';
 const CLOUDINARY_UPLOAD_PRESET = 'image_for_attendance';
 

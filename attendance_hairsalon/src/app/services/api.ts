@@ -2,8 +2,6 @@ const API_BASE_URL = 'https://api.vanquyenhair.name.vn/api/v1';
 
 const getAccessToken = () => {
     const token = localStorage.getItem('accessToken');
-    // Bỏ dev mode check để token không bao giờ bị xóa tự động
-    // Nếu token thực sự invalid, API sẽ trả về 401 và tự động refresh
     return token;
 };
 const getRefreshToken = () => localStorage.getItem('refreshToken');
@@ -43,7 +41,6 @@ const tryRefreshToken = async (): Promise<boolean> => {
             if (response.ok) {
                 const data = await response.json();
                 if (data.accessToken && data.refreshToken) {
-                    // Always save both tokens with timestamp
                     setTokens(data.accessToken, data.refreshToken);
                     return true;
                 }
@@ -103,7 +100,6 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
             }
         }
 
-        // Only throw error if we actually got a response, otherwise it's a network error
         const error = await response.json().catch(() => ({ message: 'Network error or system issue' }));
         const apiError = new Error(error.message || `HTTP error! status: ${response.status}`);
         (apiError as any).status = response.status;

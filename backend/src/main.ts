@@ -5,26 +5,25 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
 
-  // Trust proxy (Cloudflare, reverse proxy)
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', true);
 
-  app.use(cookieParser());
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
+  app.use(cookieParser());
 
   app.enableCors({
     origin: [
       'https://vanquyenhair.vercel.app',
       'https://vanquyenhair.name.vn',
 
-      // trycloudflare domains (dev)
       'https://intention-asus-losing-stewart.trycloudflare.com',
       'https://missing-overall-cdt-preston.trycloudflare.com',
 
-      // local dev
       'http://localhost:5173',
       'http://localhost:3000',
     ],
@@ -39,7 +38,6 @@ async function bootstrap() {
     }),
   );
 
-  // Set global prefix for all routes
   app.setGlobalPrefix('api/v1');
 
   const port = process.env.PORT || 8004;

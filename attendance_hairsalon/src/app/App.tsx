@@ -20,12 +20,10 @@ import Statistics from "./components/admin/Statistics";
 import { Toaster } from "./components/ui/sonner";
 
 function App() {
-  // Initialize state from localStorage to prevent flash of login page
   const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
   const accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
 
-  // DEBUG: Log ra console để kiểm tra
   console.log('🔍 App.tsx - Checking localStorage:');
   console.log('  savedUser:', savedUser);
   console.log('  accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null');
@@ -33,32 +31,8 @@ function App() {
   console.log('  isLoggedIn will be:', !!accessToken);
   console.log('  isAdmin will be:', savedUser?.role === 'ADMIN');
 
-  // CHỈ CẦN TOKEN, không cần user object (user object có thể load sau)
   const [isLoggedIn, setIsLoggedIn] = useState(!!accessToken);
   const [isAdmin, setIsAdmin] = useState(savedUser?.role === 'ADMIN');
-
-  // Bỏ việc verify token khi load app để tăng tốc độ và tránh logout không cần thiết
-  // Token sẽ tự động được verify khi gọi API thực tế, nếu invalid sẽ tự động refresh hoặc logout
-  // useEffect(() => {
-  //   const checkAuth = async () => {
-  //     try {
-  //       const { authApi } = await import('./services/api');
-  //       const userData = await authApi.getMe();
-  //       setIsLoggedIn(true);
-  //       setIsAdmin(userData.role === 'ADMIN');
-  //       localStorage.setItem('user', JSON.stringify(userData));
-  //     } catch (error: any) {
-  //       if (error.status === 401) {
-  //         setIsLoggedIn(false);
-  //         setIsAdmin(false);
-  //         localStorage.removeItem('user');
-  //       } else {
-  //         console.error('Auth check failed due to non-401 error:', error);
-  //       }
-  //     }
-  //   };
-  //   checkAuth();
-  // }, []);
 
   const handleLogin = (user: any) => {
     setIsLoggedIn(true);

@@ -31,7 +31,7 @@ export class AuthService {
         return {
             accessToken,
             refreshToken,
-            expiresIn: 90 * 24 * 60 * 60, // 90 days in seconds
+            expiresIn: 365 * 24 * 60 * 60,
             user: {
                 id: user.id,
                 phone: user.phone,
@@ -50,22 +50,22 @@ export class AuthService {
             deviceHash: deviceInfo ? this.hashDevice(deviceInfo) : undefined, // Optional device fingerprint
         };
 
-        // Access token (JWT, 90 days)
+        // Access token (JWT, 1 year - for mobile convenience)
         const accessToken = this.jwtService.sign(payload, {
-            expiresIn: '90d'
+            expiresIn: '365d'
         });
 
-        // Refresh token (JWT-based, 180 days)
+        // Refresh token (JWT-based, 2 years - for mobile convenience)
         const refreshToken = this.jwtService.sign(
             { sub: user.id, type: 'refresh' },
             {
                 secret: this.configService.get('JWT_REFRESH_SECRET'),
-                expiresIn: '180d',
+                expiresIn: '730d',
             }
         );
 
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 180); // 180 days
+        expiresAt.setDate(expiresAt.getDate() + 730); // 2 years
 
         // Save refresh token to database
         await this.prisma.refreshToken.create({
@@ -120,22 +120,22 @@ export class AuthService {
             role: user.role
         };
 
-        // Generate new access token (90 days)
+        // Generate new access token (1 year)
         const accessToken = this.jwtService.sign(payload, {
-            expiresIn: '90d'
+            expiresIn: '365d'
         });
 
-        // Generate new refresh token (180 days)
+        // Generate new refresh token (2 years)
         const newRefreshToken = this.jwtService.sign(
             { sub: user.id, type: 'refresh' },
             {
                 secret: this.configService.get('JWT_REFRESH_SECRET'),
-                expiresIn: '180d',
+                expiresIn: '730d',
             }
         );
 
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 180);
+        expiresAt.setDate(expiresAt.getDate() + 730); // 2 years
 
         // Revoke old refresh token and create new one
         await this.prisma.refreshToken.updateMany({
